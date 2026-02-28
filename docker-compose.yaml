@@ -1,0 +1,21 @@
+services:
+  ui:
+    build:
+      context: .
+      target: ${TARGET:-dev}
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./src:/app/src
+      - ./index.html:/app/index.html
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.app.json:/app/tsconfig.app.json
+      - ./eslint.config.js:/app/eslint.config.js
+      - ./.prettierrc:/app/.prettierrc
+      - ./.prettierignore:/app/.prettierignore
+    environment:
+      - CODEFORGE_URL=${CODEFORGE_URL:-http://localhost:8080}
+    restart: unless-stopped
