@@ -33,3 +33,11 @@ export type {
   CreateWorkflowRequest,
   RunWorkflowRequest,
 } from "./workflow";
+export type {
+  SentryOrganization,
+  SentryIssue,
+  SentryEvent,
+  SentryEventEntry,
+  SentryProject,
+  SentryConfig,
+} from "./sentry";

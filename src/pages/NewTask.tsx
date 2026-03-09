@@ -50,7 +50,11 @@ export default function NewTask() {
   usePageTitle("New Task");
   const navigate = useNavigate();
   const createTask = useCreateTask();
-  const { data: keys } = useKeys();
+  const { data: allKeys } = useKeys();
+  const keys = useMemo(
+    () => allKeys?.filter((k) => k.provider === "github" || k.provider === "gitlab"),
+    [allKeys],
+  );
   const { data: mcpServers } = useMCPServers();
   const { data: clis } = useCLIs();
   const { data: taskTypes } = useTaskTypes();

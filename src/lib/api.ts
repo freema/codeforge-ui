@@ -17,6 +17,10 @@ import type {
   Repository,
   ToolDefinition,
   CLIEntry,
+  SentryOrganization,
+  SentryProject,
+  SentryIssue,
+  SentryEvent,
 } from "../types";
 
 export class ApiError extends Error {
@@ -168,6 +172,46 @@ export function createApiClient(serverUrl: string, token: string) {
       ).then((r) => r.runs),
     getWorkflowRun: (runId: string) =>
       get<WorkflowRun>(`/workflow-runs/${runId}`),
+
+    // Sentry (proxied through BE)
+    listSentryOrganizations: (keyName: string) =>
+      get<{ organizations: SentryOrganization[] }>(
+        `/sentry/organizations?key_name=${encodeURIComponent(keyName)}`,
+      ).then((r) => r.organizations),
+
+    listSentryProjects: (keyName: string, org: string) =>
+      get<{ projects: SentryProject[] }>(
+        `/sentry/projects?key_name=${encodeURIComponent(keyName)}&org=${encodeURIComponent(org)}`,
+      ).then((r) => r.projects),
+
+    listSentryIssues: (
+      keyName: string,
+      org: string,
+      project: string,
+      opts?: { query?: string; sort?: string; limit?: number },
+    ) => {
+      const params = new URLSearchParams({
+        key_name: keyName,
+        org,
+        project,
+      });
+      if (opts?.query) params.set("query", opts.query);
+      if (opts?.sort) params.set("sort", opts.sort);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      return get<{ issues: SentryIssue[] }>(
+        `/sentry/issues?${params.toString()}`,
+      ).then((r) => r.issues);
+    },
+
+    getSentryIssue: (keyName: string, issueId: string) =>
+      get<SentryIssue>(
+        `/sentry/issues/${encodeURIComponent(issueId)}?key_name=${encodeURIComponent(keyName)}`,
+      ),
+
+    getSentryLatestEvent: (keyName: string, issueId: string) =>
+      get<SentryEvent>(
+        `/sentry/issues/${encodeURIComponent(issueId)}/latest-event?key_name=${encodeURIComponent(keyName)}`,
+      ),
 
     // Health & Metrics
     getHealth: () => get<HealthResponse>("/health"),

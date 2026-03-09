@@ -776,22 +776,29 @@ function ToolUseBlock({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
+  const isMCP = toolName.startsWith("mcp__");
   const { icon, label, detail } = getToolDisplay(toolName, toolInput, content);
   const hasContent = content.length > 0;
   const isEdit = toolName.toLowerCase() === "edit" || toolName.toLowerCase().includes("edit");
+  const mcpColor = isMCP ? "text-cyan-400" : "text-purple-400";
 
   return (
     <div className="mt-1 mb-0.5">
       <button
         onClick={() => hasContent && setExpanded(!expanded)}
-        className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${hasContent ? "hover:bg-purple-500/5 cursor-pointer" : "cursor-default"}`}
+        className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${hasContent ? (isMCP ? "hover:bg-cyan-500/5" : "hover:bg-purple-500/5") + " cursor-pointer" : "cursor-default"}`}
       >
         <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4">{ts}</span>
-        <span className="material-symbols-outlined text-[14px] text-purple-400">
+        <span className={`material-symbols-outlined text-[14px] ${mcpColor}`}>
           {icon}
         </span>
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-xs font-bold text-purple-400">{label}</span>
+          {isMCP && (
+            <span className="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-400">
+              MCP
+            </span>
+          )}
+          <span className={`text-xs font-bold ${mcpColor}`}>{label}</span>
           {detail && (
             <span className="truncate text-xs text-fg-3 font-mono">{detail}</span>
           )}
@@ -803,7 +810,7 @@ function ToolUseBlock({
         )}
       </button>
       {expanded && content && (
-        <div className="ml-[72px] mr-2 mb-1 rounded-b border-l-2 border-purple-500/30 bg-purple-500/5 overflow-x-auto">
+        <div className={`ml-[72px] mr-2 mb-1 rounded-b border-l-2 overflow-x-auto ${isMCP ? "border-cyan-500/30 bg-cyan-500/5" : "border-purple-500/30 bg-purple-500/5"}`}>
           {isEdit ? (
             <DiffContent content={content} />
           ) : (
@@ -935,7 +942,7 @@ function ReviewResultCard({ review }: { review: ReviewResult }) {
 
         <p className="text-sm text-fg-2">{review.summary}</p>
 
-        {review.issues.length > 0 && (
+        {review.issues && review.issues.length > 0 && (
           <div className="space-y-2">
             {review.issues.map((issue, i) => (
               <div
@@ -1265,8 +1272,12 @@ function getToolDisplay(
     const path = (toolInput?.path as string | undefined) ?? filePath ?? "";
     return { icon: "folder_open", label: "LS", detail: path };
   }
-  if (name.includes("mcp") || name.includes("server")) {
-    return { icon: "dns", label: toolName, detail: "" };
+  // MCP tools: mcp__servername__toolname
+  if (toolName.startsWith("mcp__")) {
+    const parts = toolName.split("__");
+    const serverName = parts[1] ?? "";
+    const mcpToolName = parts.slice(2).join("__") || toolName;
+    return { icon: "dns", label: mcpToolName, detail: serverName };
   }
 
   // Fallback: show tool name, but never raw JSON as detail

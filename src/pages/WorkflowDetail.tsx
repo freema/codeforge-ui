@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
 import Select from "../components/Select";
+import SentryFixerRunForm from "../components/SentryFixerRunForm";
 import { useWorkflow } from "../hooks/useWorkflows";
 import { useWorkflowRuns } from "../hooks/useWorkflowRuns";
 import {
@@ -36,7 +37,11 @@ export default function WorkflowDetail() {
   const { data: runs = [] } = useWorkflowRuns(decodedName);
   const deleteWorkflow = useDeleteWorkflow();
   const runWorkflow = useRunWorkflow();
-  const { data: keys } = useKeys();
+  const { data: allKeys } = useKeys();
+  const gitKeys = useMemo(
+    () => allKeys?.filter((k) => k.provider === "github" || k.provider === "gitlab"),
+    [allKeys],
+  );
 
   const [showRun, setShowRun] = useState(false);
   const [params, setParams] = useState<Record<string, string>>({});
@@ -44,11 +49,12 @@ export default function WorkflowDetail() {
   const [selectedKey, setSelectedKey] = useState("");
 
   // Smart: auto-select provider key for repo-related workflows
-  const firstKey = keys?.[0]?.name;
-  const { data: repos } = useRepositories(selectedKey || firstKey);
+  const firstGitKey = gitKeys?.[0]?.name;
+  const { data: repos } = useRepositories(selectedKey || firstGitKey);
 
   // Is this the code-review workflow?
   const isCodeReview = decodedName === "code-review";
+  const isSentryFixer = decodedName === "sentry-fixer";
 
   if (isLoading) {
     return (
@@ -163,7 +169,8 @@ export default function WorkflowDetail() {
       </div>
 
       {/* Run form - smart version */}
-      {showRun && (
+      {showRun && isSentryFixer && <SentryFixerRunForm />}
+      {showRun && !isSentryFixer && (
         <div className="rounded-xl border border-edge bg-surface/50 p-6 space-y-4">
           <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
             <span className="material-symbols-outlined text-accent text-base">tune</span>
@@ -171,13 +178,13 @@ export default function WorkflowDetail() {
           </h3>
 
           {/* Smart: Provider key selector */}
-          {keys && keys.length > 0 && workflow.parameters.some((p) => p.name === "provider_key" || p.name === "repo_url") && (
+          {gitKeys && gitKeys.length > 0 && workflow.parameters.some((p) => p.name === "provider_key" || p.name === "repo_url") && (
             <div>
               <label className="mb-2 block text-xs text-fg-3">
                 Provider Key
               </label>
               <div className="flex gap-2">
-                {keys.map((k) => (
+                {gitKeys.map((k) => (
                   <button
                     key={k.name}
                     type="button"

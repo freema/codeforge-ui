@@ -133,6 +133,8 @@ export interface ToolDefinition {
   description: string;
   mcp_package?: string;
   mcp_command?: string;
+  mcp_transport?: string;
+  mcp_url?: string;
   required_config?: ToolConfigField[];
   capabilities?: string[];
   builtin: boolean;

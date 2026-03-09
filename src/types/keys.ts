@@ -2,6 +2,7 @@ export interface ProviderKey {
   name: string;
   provider: string;
   scope?: string;
+  base_url?: string;
 }
 
 export interface CreateKeyRequest {
@@ -9,6 +10,7 @@ export interface CreateKeyRequest {
   provider: string;
   token: string;
   scope?: string;
+  base_url?: string;
 }
 
 export interface KeyVerifyResult {
