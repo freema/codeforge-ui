@@ -23,7 +23,10 @@ export default function App() {
           <Route path="/sessions/new" element={<NewSession />} />
           <Route path="/sessions/:id" element={<SessionDetail />} />
           <Route path="/workflows" element={<WorkflowList />} />
-          <Route path="/workflows/runs/:runId" element={<WorkflowRunDetail />} />
+          <Route
+            path="/workflows/runs/:runId"
+            element={<WorkflowRunDetail />}
+          />
           <Route path="/workflows/:name" element={<WorkflowDetail />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

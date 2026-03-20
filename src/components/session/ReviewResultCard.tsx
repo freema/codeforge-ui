@@ -17,17 +17,22 @@ export function ReviewResultCard({ review }: { review: ReviewResult }) {
   return (
     <div>
       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
-        <span className="material-symbols-outlined text-blue-400 text-base">rate_review</span>
+        <span className="material-symbols-outlined text-blue-400 text-base">
+          rate_review
+        </span>
         Code Review
       </h3>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className={`rounded-full border px-3 py-1 text-xs font-bold uppercase ${verdictColors[review.verdict]}`}>
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-bold uppercase ${verdictColors[review.verdict]}`}
+          >
             {review.verdict.replace("_", " ")}
           </span>
           <span className="font-mono text-sm text-fg">
-            Score: <span className="text-accent font-bold">{review.score}</span>/10
+            Score: <span className="text-accent font-bold">{review.score}</span>
+            /10
           </span>
         </div>
 
@@ -41,9 +46,12 @@ export function ReviewResultCard({ review }: { review: ReviewResult }) {
                 className={`rounded-lg border p-3 ${severityColors[issue.severity]}`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold uppercase">{issue.severity}</span>
+                  <span className="text-xs font-bold uppercase">
+                    {issue.severity}
+                  </span>
                   <span className="font-mono text-xs text-fg-3">
-                    {issue.file}{issue.line ? `:${issue.line}` : ""}
+                    {issue.file}
+                    {issue.line ? `:${issue.line}` : ""}
                   </span>
                 </div>
                 <p className="text-sm">{issue.description}</p>
@@ -58,7 +66,8 @@ export function ReviewResultCard({ review }: { review: ReviewResult }) {
         )}
 
         <p className="text-xs text-fg-4">
-          Reviewed by {review.reviewed_by} in {review.duration_seconds.toFixed(1)}s
+          Reviewed by {review.reviewed_by} in{" "}
+          {review.duration_seconds.toFixed(1)}s
         </p>
       </div>
     </div>

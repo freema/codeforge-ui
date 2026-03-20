@@ -26,10 +26,8 @@ export function useRunWorkflow() {
   const api = useApi();
 
   return useMutation({
-    mutationFn: ({
-      name,
-      ...req
-    }: { name: string } & RunWorkflowRequest) => api.runWorkflow(name, req),
+    mutationFn: ({ name, ...req }: { name: string } & RunWorkflowRequest) =>
+      api.runWorkflow(name, req),
   });
 }
 

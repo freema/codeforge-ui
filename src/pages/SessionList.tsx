@@ -24,7 +24,9 @@ export default function SessionList() {
   const navigate = useNavigate();
   const { data: sessions = [], isLoading, refetch } = useSessions();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<SessionStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<SessionStatus | "all">(
+    "all",
+  );
 
   const sortedSessions = useMemo(() => {
     return [...sessions].sort(
@@ -107,7 +109,9 @@ export default function SessionList() {
         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
           {STATUS_FILTERS.map((f) => {
             const count =
-              f.value === "all" ? sessions.length : statusCounts[f.value] ?? 0;
+              f.value === "all"
+                ? sessions.length
+                : (statusCounts[f.value] ?? 0);
             return (
               <button
                 key={f.value}
@@ -170,12 +174,19 @@ export default function SessionList() {
   );
 }
 
-function SessionRow({ session, onClick }: { session: Session; onClick: () => void }) {
+function SessionRow({
+  session,
+  onClick,
+}: {
+  session: Session;
+  onClick: () => void;
+}) {
   const repoShort = session.repo_url
     .replace(/^https?:\/\//, "")
     .replace(/\.git$/, "");
 
-  const isRunning = session.status === "running" || session.status === "cloning";
+  const isRunning =
+    session.status === "running" || session.status === "cloning";
   const isFailed = session.status === "failed";
 
   return (
@@ -246,9 +257,7 @@ function SessionRow({ session, onClick }: { session: Session; onClick: () => voi
         </div>
         <p
           className={`text-sm font-medium ${
-            session.status === "completed"
-              ? "text-fg-3"
-              : "text-fg"
+            session.status === "completed" ? "text-fg-3" : "text-fg"
           }`}
         >
           {session.prompt.length > 150
@@ -271,9 +280,19 @@ function SessionRow({ session, onClick }: { session: Session; onClick: () => voi
               {session.session_type}
             </span>
           )}
-          {session.changes_summary && (session.changes_summary.files_modified > 0 || session.changes_summary.files_created > 0 || session.changes_summary.files_deleted > 0) && (
-            <DiffStats diffStats={session.changes_summary.diff_stats} filesCount={session.changes_summary.files_modified + session.changes_summary.files_created + session.changes_summary.files_deleted} />
-          )}
+          {session.changes_summary &&
+            (session.changes_summary.files_modified > 0 ||
+              session.changes_summary.files_created > 0 ||
+              session.changes_summary.files_deleted > 0) && (
+              <DiffStats
+                diffStats={session.changes_summary.diff_stats}
+                filesCount={
+                  session.changes_summary.files_modified +
+                  session.changes_summary.files_created +
+                  session.changes_summary.files_deleted
+                }
+              />
+            )}
           {session.workflow_run_id && (
             <Link
               to={`/workflows/runs/${session.workflow_run_id}`}
@@ -281,13 +300,17 @@ function SessionRow({ session, onClick }: { session: Session; onClick: () => voi
               className="flex items-center gap-0.5 font-mono text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
               title="Workflow run"
             >
-              <span className="material-symbols-outlined text-xs">account_tree</span>
+              <span className="material-symbols-outlined text-xs">
+                account_tree
+              </span>
               WF
             </Link>
           )}
           {session.pr_url && (
             <span className="flex items-center gap-0.5 font-mono text-[10px] text-teal-500">
-              <span className="material-symbols-outlined text-xs">call_merge</span>
+              <span className="material-symbols-outlined text-xs">
+                call_merge
+              </span>
               PR
             </span>
           )}
@@ -297,13 +320,21 @@ function SessionRow({ session, onClick }: { session: Session; onClick: () => voi
   );
 }
 
-function DiffStats({ diffStats, filesCount }: { diffStats?: string; filesCount: number }) {
+function DiffStats({
+  diffStats,
+  filesCount,
+}: {
+  diffStats?: string;
+  filesCount: number;
+}) {
   if (diffStats) {
     const match = diffStats.match(/\+(\d+)\s+-(\d+)/);
     if (match && (match[1] !== "0" || match[2] !== "0")) {
       return (
         <span className="flex items-center gap-1.5 font-mono text-xs">
-          <span className="material-symbols-outlined text-sm text-fg-4">difference</span>
+          <span className="material-symbols-outlined text-sm text-fg-4">
+            difference
+          </span>
           <span className="text-emerald-400">+{match[1]}</span>
           <span className="text-red-400">-{match[2]}</span>
         </span>
@@ -343,9 +374,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
 }
 
 function formatTimeAgo(dateStr: string): string {
-  const seconds = Math.floor(
-    (Date.now() - new Date(dateStr).getTime()) / 1000,
-  );
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;

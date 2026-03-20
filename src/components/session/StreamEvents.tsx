@@ -15,14 +15,18 @@ import {
 import type { StreamEvent } from "../../types";
 
 /** Helper: extract TodoWrite todos from a stream event, or null */
-function extractTodoWrite(event: StreamEvent): Array<{ content: string; status: string }> | null {
+function extractTodoWrite(
+  event: StreamEvent,
+): Array<{ content: string; status: string }> | null {
   const data = event.data as Record<string, unknown> | string;
   if (typeof data !== "object" || data === null) return null;
   if (data.type !== "tool_use") return null;
   const raw = data.raw as Record<string, unknown> | undefined;
   if (!raw) return null;
   const message = raw.message as Record<string, unknown> | undefined;
-  const contentArr = (message?.content ?? raw.content) as Array<Record<string, unknown>> | undefined;
+  const contentArr = (message?.content ?? raw.content) as
+    | Array<Record<string, unknown>>
+    | undefined;
   if (!contentArr || !Array.isArray(contentArr)) return null;
   const block = contentArr.find((c) => c.name === "TodoWrite");
   if (!block) return null;
@@ -30,7 +34,13 @@ function extractTodoWrite(event: StreamEvent): Array<{ content: string; status: 
   return (input?.todos as Array<{ content: string; status: string }>) ?? null;
 }
 
-export function StreamEvents({ events, isActive }: { events: StreamEvent[]; isActive: boolean }) {
+export function StreamEvents({
+  events,
+  isActive,
+}: {
+  events: StreamEvent[];
+  isActive: boolean;
+}) {
   // Find all TodoWrite event indices and compute latest plan state
   const planData = useMemo(() => {
     const indices: number[] = [];
@@ -44,7 +54,11 @@ export function StreamEvents({ events, isActive }: { events: StreamEvent[]; isAc
       }
     }
 
-    return { todoWriteIndices: new Set(indices), latestTodos, firstIndex: indices[0] ?? -1 };
+    return {
+      todoWriteIndices: new Set(indices),
+      latestTodos,
+      firstIndex: indices[0] ?? -1,
+    };
   }, [events]);
 
   return (
@@ -53,7 +67,13 @@ export function StreamEvents({ events, isActive }: { events: StreamEvent[]; isAc
         // TodoWrite events: show the plan block at the FIRST occurrence, skip the rest
         if (planData.todoWriteIndices.has(i)) {
           if (i === planData.firstIndex && planData.latestTodos) {
-            return <PlanProgressBlock key={i} todos={planData.latestTodos} isActive={isActive} />;
+            return (
+              <PlanProgressBlock
+                key={i}
+                todos={planData.latestTodos}
+                isActive={isActive}
+              />
+            );
           }
           return null; // skip subsequent TodoWrite events
         }
@@ -79,8 +99,12 @@ function PlanProgressBlock({
     <div className="my-2 rounded-lg border border-accent/20 bg-accent/[0.03] overflow-hidden">
       {/* Header with progress */}
       <div className="flex items-center gap-3 px-3 py-2 border-b border-accent/10">
-        <span className="material-symbols-outlined text-base text-accent">checklist</span>
-        <span className="text-xs font-bold uppercase tracking-wider text-accent">Plan</span>
+        <span className="material-symbols-outlined text-base text-accent">
+          checklist
+        </span>
+        <span className="text-xs font-bold uppercase tracking-wider text-accent">
+          Plan
+        </span>
         <span className="ml-auto font-mono text-[10px] text-fg-3">
           {completed}/{total}
         </span>
@@ -92,7 +116,9 @@ function PlanProgressBlock({
           />
         </div>
         {pct === 100 && (
-          <span className="material-symbols-outlined text-sm text-accent">done_all</span>
+          <span className="material-symbols-outlined text-sm text-accent">
+            done_all
+          </span>
         )}
         {pct < 100 && isActive && inProgress > 0 && (
           <Loader2 className="h-3 w-3 animate-spin text-accent/60" />
@@ -110,13 +136,21 @@ function PlanProgressBlock({
               className={`flex items-center gap-2 py-1 ${isCompleted ? "text-fg-4" : isInProg ? "text-accent" : "text-fg-3"}`}
             >
               {isCompleted ? (
-                <span className="material-symbols-outlined text-sm text-accent/60">check_circle</span>
+                <span className="material-symbols-outlined text-sm text-accent/60">
+                  check_circle
+                </span>
               ) : isInProg ? (
-                <span className="material-symbols-outlined text-sm text-accent animate-pulse">pending</span>
+                <span className="material-symbols-outlined text-sm text-accent animate-pulse">
+                  pending
+                </span>
               ) : (
-                <span className="material-symbols-outlined text-sm text-fg-4/50">radio_button_unchecked</span>
+                <span className="material-symbols-outlined text-sm text-fg-4/50">
+                  radio_button_unchecked
+                </span>
               )}
-              <span className={`text-xs ${isCompleted ? "line-through opacity-60" : ""}`}>
+              <span
+                className={`text-xs ${isCompleted ? "line-through opacity-60" : ""}`}
+              >
                 {todo.content}
               </span>
             </div>
@@ -129,9 +163,13 @@ function PlanProgressBlock({
 
 function TerminalEvent({ event }: { event: StreamEvent }) {
   const data = event.data as Record<string, unknown> | string;
-  const dataType = typeof data === "object" && data !== null ? (data.type as string) : null;
+  const dataType =
+    typeof data === "object" && data !== null ? (data.type as string) : null;
   const content = typeof data === "string" ? data : getContent(data);
-  const raw = typeof data === "object" && data !== null ? (data.raw as Record<string, unknown> | undefined) : undefined;
+  const raw =
+    typeof data === "object" && data !== null
+      ? (data.raw as Record<string, unknown> | undefined)
+      : undefined;
 
   const ts = event.ts
     ? new Date(event.ts).toLocaleTimeString("en-US", {
@@ -149,10 +187,16 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
     if (!prompt) return null;
     return (
       <div className="mt-3 mb-1 flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2">
-        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-        <span className="material-symbols-outlined text-[14px] text-blue-400 mt-0.5">person</span>
+        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+          {ts}
+        </span>
+        <span className="material-symbols-outlined text-[14px] text-blue-400 mt-0.5">
+          person
+        </span>
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">You</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+            You
+          </span>
           <p className="mt-0.5 text-xs text-fg whitespace-pre-wrap">{prompt}</p>
         </div>
       </div>
@@ -165,8 +209,12 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
     if (!msg) return null;
     return (
       <div className="flex items-start gap-2 rounded px-2 py-1.5 bg-accent/5">
-        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-        <span className="material-symbols-outlined text-[14px] text-accent/70 mt-0.5">info</span>
+        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+          {ts}
+        </span>
+        <span className="material-symbols-outlined text-[14px] text-accent/70 mt-0.5">
+          info
+        </span>
         <span className="text-xs text-accent/80">{msg}</span>
       </div>
     );
@@ -178,8 +226,12 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
     if (!msg) return null;
     return (
       <div className="flex items-start gap-2 rounded px-2 py-1.5 bg-cyan-400/5">
-        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-        <span className="material-symbols-outlined text-[14px] text-cyan-400/70 mt-0.5">commit</span>
+        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+          {ts}
+        </span>
+        <span className="material-symbols-outlined text-[14px] text-cyan-400/70 mt-0.5">
+          commit
+        </span>
         <span className="text-xs text-cyan-400/80">{msg}</span>
       </div>
     );
@@ -189,8 +241,12 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
   if (event.type === "result") {
     return (
       <div className="mt-3 flex items-center gap-2 rounded px-2 py-1.5 bg-accent/5">
-        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-        <span className="material-symbols-outlined text-[14px] text-accent">check_circle</span>
+        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+          {ts}
+        </span>
+        <span className="material-symbols-outlined text-[14px] text-accent">
+          check_circle
+        </span>
         <span className="text-xs font-bold text-accent">Session completed</span>
       </div>
     );
@@ -205,9 +261,21 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
       const toolInput = toolInfo.input;
       const toolContent = formatToolExpandedContent(toolName, toolInput);
       const n = toolName.toLowerCase();
-      const showExpanded = (n === "write" || (n.includes("write") && n !== "todowrite")) || n === "edit" || n.includes("edit") || n === "multiedit" || n.includes("multiedit");
+      const showExpanded =
+        n === "write" ||
+        (n.includes("write") && n !== "todowrite") ||
+        n === "edit" ||
+        n.includes("edit") ||
+        n === "multiedit" ||
+        n.includes("multiedit");
       return (
-        <ToolUseBlock ts={ts} toolName={toolName} toolInput={toolInput} content={toolContent} defaultExpanded={showExpanded} />
+        <ToolUseBlock
+          ts={ts}
+          toolName={toolName}
+          toolInput={toolInput}
+          content={toolContent}
+          defaultExpanded={showExpanded}
+        />
       );
     }
 
@@ -218,15 +286,26 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
       if (itemType?.type === "command_execution") {
         const cmd = (itemType.command as string) ?? content;
         const exitCode = itemType.exit_code as number | undefined;
-        const shortCmd = cmd.replace(/^\/bin\/sh\s+-lc\s+/, "").replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+        const shortCmd = cmd
+          .replace(/^\/bin\/sh\s+-lc\s+/, "")
+          .replace(/^"(.*)"$/, "$1")
+          .replace(/^'(.*)'$/, "$1");
         return (
           <div className="flex items-center gap-2 rounded px-2 py-1.5">
-            <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4">{ts}</span>
-            <span className="material-symbols-outlined text-[14px] text-purple-400">terminal</span>
+            <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4">
+              {ts}
+            </span>
+            <span className="material-symbols-outlined text-[14px] text-purple-400">
+              terminal
+            </span>
             <span className="text-xs font-bold text-purple-400">Bash</span>
-            <span className="flex-1 min-w-0 truncate text-xs text-fg-3 font-mono">{shortCmd}</span>
+            <span className="flex-1 min-w-0 truncate text-xs text-fg-3 font-mono">
+              {shortCmd}
+            </span>
             {exitCode != null && (
-              <span className={`font-mono text-[10px] ${exitCode === 0 ? "text-accent/60" : "text-red-400"}`}>
+              <span
+                className={`font-mono text-[10px] ${exitCode === 0 ? "text-accent/60" : "text-red-400"}`}
+              >
                 exit {exitCode}
               </span>
             )}
@@ -234,9 +313,7 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
         );
       }
       const resultText = extractToolResultContent(raw, content);
-      return (
-        <ToolResultBlock content={resultText} />
-      );
+      return <ToolResultBlock content={resultText} />;
     }
 
     // Thinking — agent's reasoning
@@ -248,9 +325,15 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
     if (dataType === "error") {
       return (
         <div className="flex items-start gap-2 rounded px-2 py-1.5 bg-red-500/5">
-          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-          <span className="material-symbols-outlined text-[14px] text-red-400 mt-0.5">error</span>
-          <span className="text-xs text-red-400 whitespace-pre-wrap break-words">{content}</span>
+          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+            {ts}
+          </span>
+          <span className="material-symbols-outlined text-[14px] text-red-400 mt-0.5">
+            error
+          </span>
+          <span className="text-xs text-red-400 whitespace-pre-wrap break-words">
+            {content}
+          </span>
         </div>
       );
     }
@@ -260,7 +343,9 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
       if (!content) return null;
       return (
         <div className="flex items-start gap-2 px-2 py-1">
-          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
+          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+            {ts}
+          </span>
           <div className="min-w-0 flex-1">
             <MarkdownText text={content} className="text-xs" />
           </div>
@@ -274,8 +359,12 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
       if (!msg) return null;
       return (
         <div className="flex items-start gap-2 rounded px-2 py-1.5 bg-accent/5">
-          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-          <span className="material-symbols-outlined text-[14px] text-accent/70 mt-0.5">info</span>
+          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+            {ts}
+          </span>
+          <span className="material-symbols-outlined text-[14px] text-accent/70 mt-0.5">
+            info
+          </span>
           <span className="text-xs text-accent/80">{msg}</span>
         </div>
       );
@@ -285,8 +374,12 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
     if (content.startsWith("{") && content.length > 200) return null;
     return (
       <div className="flex items-start gap-2 px-2 py-0.5">
-        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-        <span className="min-w-0 flex-1 text-xs text-fg-3 whitespace-pre-wrap break-words">{content}</span>
+        <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+          {ts}
+        </span>
+        <span className="min-w-0 flex-1 text-xs text-fg-3 whitespace-pre-wrap break-words">
+          {content}
+        </span>
       </div>
     );
   }
@@ -295,9 +388,15 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
   if (content.startsWith("{") && content.length > 200) return null;
   return (
     <div className="flex items-start gap-2 px-2 py-0.5">
-      <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">{ts}</span>
-      <span className="text-[10px] font-bold text-fg-4 uppercase mt-0.5">[{event.type}]</span>
-      <span className="min-w-0 flex-1 text-xs text-fg-3 whitespace-pre-wrap break-words">{content}</span>
+      <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+        {ts}
+      </span>
+      <span className="text-[10px] font-bold text-fg-4 uppercase mt-0.5">
+        [{event.type}]
+      </span>
+      <span className="min-w-0 flex-1 text-xs text-fg-3 whitespace-pre-wrap break-words">
+        {content}
+      </span>
     </div>
   );
 }

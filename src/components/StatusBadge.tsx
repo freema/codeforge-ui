@@ -2,7 +2,14 @@ import type { SessionStatus } from "../types";
 
 const statusConfig: Record<
   SessionStatus,
-  { label: string; color: string; bg: string; border: string; icon: string; animated?: boolean }
+  {
+    label: string;
+    color: string;
+    bg: string;
+    border: string;
+    icon: string;
+    animated?: boolean;
+  }
 > = {
   pending: {
     label: "QUEUED",

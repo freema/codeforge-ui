@@ -13,7 +13,11 @@ export function useSentryOrganizations(keyName: string | undefined) {
   });
 }
 
-export function useSentryProjects(keyName: string | undefined, org: string | undefined, region?: string) {
+export function useSentryProjects(
+  keyName: string | undefined,
+  org: string | undefined,
+  region?: string,
+) {
   const api = useApi();
 
   return useQuery({
@@ -33,7 +37,15 @@ export function useSentryIssues(
   const api = useApi();
 
   return useQuery({
-    queryKey: ["sentryIssues", keyName, org, project, opts?.query, opts?.sort, opts?.region],
+    queryKey: [
+      "sentryIssues",
+      keyName,
+      org,
+      project,
+      opts?.query,
+      opts?.sort,
+      opts?.region,
+    ],
     queryFn: () =>
       api.listSentryIssues(keyName!, org!, project!, {
         query: opts?.query,
@@ -46,7 +58,10 @@ export function useSentryIssues(
   });
 }
 
-export function useSentryIssue(keyName: string | undefined, issueId: string | undefined) {
+export function useSentryIssue(
+  keyName: string | undefined,
+  issueId: string | undefined,
+) {
   const api = useApi();
 
   return useQuery({
@@ -56,7 +71,10 @@ export function useSentryIssue(keyName: string | undefined, issueId: string | un
   });
 }
 
-export function useSentryLatestEvent(keyName: string | undefined, issueId: string | undefined) {
+export function useSentryLatestEvent(
+  keyName: string | undefined,
+  issueId: string | undefined,
+) {
   const api = useApi();
 
   return useQuery({

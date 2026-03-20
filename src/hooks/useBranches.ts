@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 
-export function useBranches(providerKey: string | undefined, repo: string | undefined) {
+export function useBranches(
+  providerKey: string | undefined,
+  repo: string | undefined,
+) {
   const api = useApi();
 
   return useQuery({

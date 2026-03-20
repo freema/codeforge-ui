@@ -143,7 +143,10 @@ function Block({ block }: { block: BlockNode }) {
       return (
         <ul className="space-y-1 pl-1">
           {block.items.map((item, j) => (
-            <li key={j} className="flex gap-2 text-xs leading-relaxed text-fg-2">
+            <li
+              key={j}
+              className="flex gap-2 text-xs leading-relaxed text-fg-2"
+            >
               <span className="mt-1 shrink-0 text-accent/40">-</span>
               <span>{renderInline(item)}</span>
             </li>

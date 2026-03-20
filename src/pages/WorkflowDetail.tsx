@@ -16,18 +16,48 @@ import { useRepositories } from "../hooks/useRepositories";
 import { useToast } from "../context/ToastContext";
 import type { RunStatus, StepType } from "../types";
 
-const stepTypeColors: Record<StepType, { color: string; bg: string; icon: string }> = {
-  fetch: { color: "text-cyan-400", bg: "bg-cyan-400/10", icon: "cloud_download" },
-  session: { color: "text-yellow-400", bg: "bg-yellow-400/10", icon: "terminal" },
+const stepTypeColors: Record<
+  StepType,
+  { color: string; bg: string; icon: string }
+> = {
+  fetch: {
+    color: "text-cyan-400",
+    bg: "bg-cyan-400/10",
+    icon: "cloud_download",
+  },
+  session: {
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
+    icon: "terminal",
+  },
   action: { color: "text-purple-400", bg: "bg-purple-400/10", icon: "bolt" },
 };
 
-const runStatusColors: Record<RunStatus, { color: string; bg: string; border: string }> = {
+const runStatusColors: Record<
+  RunStatus,
+  { color: string; bg: string; border: string }
+> = {
   pending: { color: "text-fg-3", bg: "bg-surface", border: "border-edge" },
-  running: { color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-500/20" },
-  completed: { color: "text-accent", bg: "bg-accent/10", border: "border-accent/20" },
-  failed: { color: "text-red-400", bg: "bg-red-400/10", border: "border-red-500/20" },
-  cancelled: { color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-500/20" },
+  running: {
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
+    border: "border-yellow-500/20",
+  },
+  completed: {
+    color: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/20",
+  },
+  failed: {
+    color: "text-red-400",
+    bg: "bg-red-400/10",
+    border: "border-red-500/20",
+  },
+  cancelled: {
+    color: "text-orange-400",
+    bg: "bg-orange-400/10",
+    border: "border-orange-500/20",
+  },
 };
 
 export default function WorkflowDetail() {
@@ -44,7 +74,10 @@ export default function WorkflowDetail() {
   const cancelAllRuns = useCancelAllWorkflowRuns();
   const { data: allKeys } = useKeys();
   const gitKeys = useMemo(
-    () => allKeys?.filter((k) => k.provider === "github" || k.provider === "gitlab"),
+    () =>
+      allKeys?.filter(
+        (k) => k.provider === "github" || k.provider === "gitlab",
+      ),
     [allKeys],
   );
 
@@ -62,15 +95,15 @@ export default function WorkflowDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <span className="material-symbols-outlined animate-spin text-3xl text-accent/50">progress_activity</span>
+        <span className="material-symbols-outlined animate-spin text-3xl text-accent/50">
+          progress_activity
+        </span>
       </div>
     );
   }
 
   if (!workflow) {
-    return (
-      <p className="py-20 text-center text-fg-4">Workflow not found.</p>
-    );
+    return <p className="py-20 text-center text-fg-4">Workflow not found.</p>;
   }
 
   async function handleDelete() {
@@ -114,9 +147,7 @@ export default function WorkflowDetail() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-fg">
-              {workflow.name}
-            </h1>
+            <h1 className="text-2xl font-bold text-fg">{workflow.name}</h1>
             {workflow.builtin && (
               <span className="rounded-full border border-accent/20 bg-accent/10 px-3 py-0.5 text-xs font-bold text-accent">
                 BUILT-IN
@@ -124,9 +155,7 @@ export default function WorkflowDetail() {
             )}
           </div>
           {workflow.description && (
-            <p className="mt-1 text-sm text-fg-3">
-              {workflow.description}
-            </p>
+            <p className="mt-1 text-sm text-fg-3">{workflow.description}</p>
           )}
         </div>
 
@@ -155,7 +184,9 @@ export default function WorkflowDetail() {
                   onClick={() => setConfirmDelete(true)}
                   className="flex items-center gap-1.5 rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-900/40"
                 >
-                  <span className="material-symbols-outlined text-lg">delete</span>
+                  <span className="material-symbols-outlined text-lg">
+                    delete
+                  </span>
                   Delete
                 </button>
               )}
@@ -165,7 +196,9 @@ export default function WorkflowDetail() {
             onClick={() => setShowRun(!showRun)}
             className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover"
           >
-            <span className="material-symbols-outlined text-lg">play_arrow</span>
+            <span className="material-symbols-outlined text-lg">
+              play_arrow
+            </span>
             Run Workflow
           </button>
         </div>
@@ -176,56 +209,66 @@ export default function WorkflowDetail() {
       {showRun && !isSentryFixer && (
         <div className="rounded-xl border border-edge bg-surface/50 p-6 space-y-4">
           <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
-            <span className="material-symbols-outlined text-accent text-base">tune</span>
+            <span className="material-symbols-outlined text-accent text-base">
+              tune
+            </span>
             Run Parameters
           </h3>
 
           {/* Smart: Provider key selector */}
-          {gitKeys && gitKeys.length > 0 && workflow.parameters.some((p) => p.name === "provider_key" || p.name === "repo_url") && (
-            <div>
-              <label className="mb-2 block text-xs text-fg-3">
-                Provider Key
-              </label>
-              <div className="flex gap-2">
-                {gitKeys.map((k) => (
-                  <button
-                    key={k.name}
-                    type="button"
-                    onClick={() => {
-                      setSelectedKey(k.name);
-                      updateParam("provider_key", k.name);
-                    }}
-                    className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
-                      (selectedKey || params.provider_key) === k.name
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-edge text-fg-3 hover:border-fg-4"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-lg">code</span>
-                    {k.name}
-                  </button>
-                ))}
+          {gitKeys &&
+            gitKeys.length > 0 &&
+            workflow.parameters.some(
+              (p) => p.name === "provider_key" || p.name === "repo_url",
+            ) && (
+              <div>
+                <label className="mb-2 block text-xs text-fg-3">
+                  Provider Key
+                </label>
+                <div className="flex gap-2">
+                  {gitKeys.map((k) => (
+                    <button
+                      key={k.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedKey(k.name);
+                        updateParam("provider_key", k.name);
+                      }}
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+                        (selectedKey || params.provider_key) === k.name
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-edge text-fg-3 hover:border-fg-4"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        code
+                      </span>
+                      {k.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Smart: Repo URL selector if repos available */}
-          {repos && repos.length > 0 && workflow.parameters.some((p) => p.name === "repo_url") && (
-            <div>
-              <label className="mb-2 block text-xs text-fg-3">
-                Repository
-              </label>
-              <Select
-                value={params.repo_url || ""}
-                onChange={(v) => updateParam("repo_url", v)}
-                placeholder="Select repository..."
-                options={repos.map((r) => ({
-                  value: r.clone_url,
-                  label: r.full_name,
-                }))}
-              />
-            </div>
-          )}
+          {repos &&
+            repos.length > 0 &&
+            workflow.parameters.some((p) => p.name === "repo_url") && (
+              <div>
+                <label className="mb-2 block text-xs text-fg-3">
+                  Repository
+                </label>
+                <Select
+                  value={params.repo_url || ""}
+                  onChange={(v) => updateParam("repo_url", v)}
+                  placeholder="Select repository..."
+                  options={repos.map((r) => ({
+                    value: r.clone_url,
+                    label: r.full_name,
+                  }))}
+                />
+              </div>
+            )}
 
           {/* Other parameters */}
           {workflow.parameters
@@ -234,9 +277,7 @@ export default function WorkflowDetail() {
               <div key={p.name}>
                 <label className="mb-2 block text-xs text-fg-3">
                   {p.name.replace(/_/g, " ")}
-                  {p.required && (
-                    <span className="ml-1 text-red-400">*</span>
-                  )}
+                  {p.required && <span className="ml-1 text-red-400">*</span>}
                 </label>
                 <input
                   type="text"
@@ -260,9 +301,13 @@ export default function WorkflowDetail() {
             className="flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover disabled:opacity-50"
           >
             {runWorkflow.isPending ? (
-              <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-base">
+                progress_activity
+              </span>
             ) : (
-              <span className="material-symbols-outlined text-lg">play_arrow</span>
+              <span className="material-symbols-outlined text-lg">
+                play_arrow
+              </span>
             )}
             Start Run
           </button>
@@ -273,7 +318,9 @@ export default function WorkflowDetail() {
       <div className="rounded-xl border border-edge bg-surface-alt overflow-hidden">
         <div className="flex items-center justify-between border-b border-edge bg-surface/70 px-6 py-4">
           <h3 className="flex items-center gap-2 font-bold text-fg">
-            <span className="material-symbols-outlined text-sm text-accent">schema</span>
+            <span className="material-symbols-outlined text-sm text-accent">
+              schema
+            </span>
             Workflow Steps
           </h3>
           <span className="rounded-full bg-edge px-2 py-0.5 font-mono text-xs text-fg-3">
@@ -304,7 +351,11 @@ export default function WorkflowDetail() {
                     </div>
                     <span
                       className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${tc.bg} ${tc.color}`}
-                      style={{ borderColor: "currentColor", borderWidth: "1px", opacity: 0.5 }}
+                      style={{
+                        borderColor: "currentColor",
+                        borderWidth: "1px",
+                        opacity: 0.5,
+                      }}
                     >
                       {step.type}
                     </span>
@@ -326,21 +377,28 @@ export default function WorkflowDetail() {
         <div className="rounded-xl border border-edge bg-surface-alt overflow-hidden">
           <div className="flex items-center justify-between border-b border-edge bg-surface/70 px-6 py-4">
             <h3 className="flex items-center gap-2 font-bold text-fg">
-              <span className="material-symbols-outlined text-sm text-accent">history</span>
+              <span className="material-symbols-outlined text-sm text-accent">
+                history
+              </span>
               Recent Runs
             </h3>
-            {recentRuns.some((r) => r.status === "pending" || r.status === "running") && (
+            {recentRuns.some(
+              (r) => r.status === "pending" || r.status === "running",
+            ) && (
               <button
                 onClick={() => {
                   cancelAllRuns.mutate(decodedName, {
                     onSuccess: (data) => toast("success", data.message),
-                    onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                    onError: (err) =>
+                      toast("error", `Cancel failed: ${err.message}`),
                   });
                 }}
                 disabled={cancelAllRuns.isPending}
                 className="flex items-center gap-1.5 rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-sm">stop_circle</span>
+                <span className="material-symbols-outlined text-sm">
+                  stop_circle
+                </span>
                 {cancelAllRuns.isPending ? "Cancelling..." : "Cancel All"}
               </button>
             )}
@@ -348,7 +406,8 @@ export default function WorkflowDetail() {
           <div className="divide-y divide-edge">
             {recentRuns.map((run) => {
               const sc = runStatusColors[run.status];
-              const isRunActive = run.status === "pending" || run.status === "running";
+              const isRunActive =
+                run.status === "pending" || run.status === "running";
               return (
                 <div
                   key={run.id}
@@ -378,14 +437,18 @@ export default function WorkflowDetail() {
                       onClick={(e) => {
                         e.stopPropagation();
                         cancelRun.mutate(run.id, {
-                          onSuccess: () => toast("success", "Run cancellation requested"),
-                          onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                          onSuccess: () =>
+                            toast("success", "Run cancellation requested"),
+                          onError: (err) =>
+                            toast("error", `Cancel failed: ${err.message}`),
                         });
                       }}
                       disabled={cancelRun.isPending}
                       className="flex items-center gap-1 rounded border border-red-900/50 bg-red-900/20 px-2 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
                     >
-                      <span className="material-symbols-outlined text-xs">stop</span>
+                      <span className="material-symbols-outlined text-xs">
+                        stop
+                      </span>
                       Cancel
                     </button>
                   )}
@@ -400,9 +463,7 @@ export default function WorkflowDetail() {
 }
 
 function formatTimeAgo(dateStr: string): string {
-  const seconds = Math.floor(
-    (Date.now() - new Date(dateStr).getTime()) / 1000,
-  );
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;

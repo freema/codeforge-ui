@@ -12,7 +12,12 @@ interface SelectProps {
   placeholder?: string;
 }
 
-export default function Select({ value, onChange, options, placeholder }: SelectProps) {
+export default function Select({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: SelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -80,7 +85,9 @@ export default function Select({ value, onChange, options, placeholder }: Select
           )}
           <div className="max-h-64 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-center text-xs text-fg-4">No results</div>
+              <div className="px-3 py-3 text-center text-xs text-fg-4">
+                No results
+              </div>
             ) : (
               filtered.map((opt) => (
                 <button

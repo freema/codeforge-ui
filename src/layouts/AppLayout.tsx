@@ -26,12 +26,18 @@ export default function AppLayout() {
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-page">
       {/* Grid background */}
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-20" style={{
-        backgroundImage: "linear-gradient(to right, var(--th-grid-line) 1px, transparent 1px), linear-gradient(to bottom, var(--th-grid-line) 1px, transparent 1px)",
-        backgroundSize: "40px 40px",
-        maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 80%, rgba(0,0,0,0))",
-        WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 80%, rgba(0,0,0,0))",
-      }} />
+      <div
+        className="pointer-events-none absolute inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--th-grid-line) 1px, transparent 1px), linear-gradient(to bottom, var(--th-grid-line) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,1) 80%, rgba(0,0,0,0))",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,1) 80%, rgba(0,0,0,0))",
+        }}
+      />
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -59,7 +65,10 @@ export default function AppLayout() {
                 </span>
               </div>
               <div className="flex flex-col">
-                <h1 className="text-lg font-bold tracking-tight text-fg" style={{ textShadow: "0 0 10px rgba(0,255,64,0.5)" }}>
+                <h1
+                  className="text-lg font-bold tracking-tight text-fg"
+                  style={{ textShadow: "0 0 10px rgba(0,255,64,0.5)" }}
+                >
                   CodeForge
                 </h1>
                 {health?.version && (
@@ -89,9 +98,7 @@ export default function AppLayout() {
                   <span className="material-symbols-outlined transition-colors group-hover:text-accent">
                     {icon}
                   </span>
-                  <p className="text-sm font-medium tracking-wide">
-                    {label}
-                  </p>
+                  <p className="text-sm font-medium tracking-wide">{label}</p>
                 </NavLink>
               ))}
             </nav>
@@ -115,7 +122,9 @@ export default function AppLayout() {
                 onClick={handleLogout}
                 className="flex items-center gap-2 rounded-lg border border-red-900/50 bg-red-900/10 px-4 py-2 font-mono text-xs font-bold text-red-400 transition-all hover:bg-red-900/20 hover:text-red-300"
               >
-                <span className="material-symbols-outlined text-sm">logout</span>
+                <span className="material-symbols-outlined text-sm">
+                  logout
+                </span>
                 LOGOUT
               </button>
             </div>
@@ -126,7 +135,10 @@ export default function AppLayout() {
       {/* Main area */}
       <main className="relative z-10 flex h-full flex-1 flex-col overflow-y-auto">
         {/* Top header bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-edge px-6 py-3 backdrop-blur-md" style={{ background: "var(--th-surface-glass)" }}>
+        <header
+          className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-edge px-6 py-3 backdrop-blur-md"
+          style={{ background: "var(--th-surface-glass)" }}
+        >
           {/* Mobile menu */}
           <div className="flex items-center gap-4 lg:hidden">
             <button

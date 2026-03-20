@@ -11,10 +11,16 @@ export function getContent(data: Record<string, unknown> | null): string {
 /** Known noisy system events with no useful content */
 const HIDDEN_SYSTEM_EVENTS = new Set(["user", "heartbeat", "ping", "ack"]);
 
-export function formatSystemEvent(eventName: string, data: unknown): string | null {
+export function formatSystemEvent(
+  eventName: string,
+  data: unknown,
+): string | null {
   if (HIDDEN_SYSTEM_EVENTS.has(eventName)) return null;
 
-  const obj = typeof data === "object" && data !== null ? data as Record<string, unknown> : {};
+  const obj =
+    typeof data === "object" && data !== null
+      ? (data as Record<string, unknown>)
+      : {};
   switch (eventName) {
     case "user_instruction":
       return null; // rendered separately with special styling
@@ -47,17 +53,30 @@ export function formatSystemEvent(eventName: string, data: unknown): string | nu
 
 /** Known noisy stream subtypes to hide */
 const HIDDEN_STREAM_SUBTYPES = new Set([
-  "user", "heartbeat", "ping", "ack", "result",
+  "user",
+  "heartbeat",
+  "ping",
+  "ack",
+  "result",
   // Codex-specific internal events
-  "thread.started", "thread.completed", "turn.started", "turn.completed",
-  "item.completed", "item.started", "item.created", "item.updated",
+  "thread.started",
+  "thread.completed",
+  "turn.started",
+  "turn.completed",
+  "item.completed",
+  "item.started",
+  "item.created",
+  "item.updated",
 ]);
 
 /** Format stream system events (init, config, etc.) into readable text */
-export function formatStreamSystemEvent(data: Record<string, unknown>): string | null {
+export function formatStreamSystemEvent(
+  data: Record<string, unknown>,
+): string | null {
   const raw = data.raw as Record<string, unknown> | undefined;
   const cli = data.cli as string | undefined;
-  const subtype = raw?.subtype as string | undefined ?? raw?.type as string | undefined;
+  const subtype =
+    (raw?.subtype as string | undefined) ?? (raw?.type as string | undefined);
 
   if (subtype && HIDDEN_STREAM_SUBTYPES.has(subtype)) return null;
 
@@ -91,17 +110,27 @@ export function formatStreamSystemEvent(data: Record<string, unknown>): string |
 }
 
 /** Format tool expanded content based on tool type — not raw JSON */
-export function formatToolExpandedContent(toolName: string, toolInput?: Record<string, unknown>): string {
+export function formatToolExpandedContent(
+  toolName: string,
+  toolInput?: Record<string, unknown>,
+): string {
   if (!toolInput) return "";
   const name = toolName.toLowerCase();
 
   // TodoWrite: show the todo items as a checklist
   if (name === "todowrite") {
-    const todos = toolInput.todos as Array<{ content: string; status: string }> | undefined;
+    const todos = toolInput.todos as
+      | Array<{ content: string; status: string }>
+      | undefined;
     if (todos && todos.length > 0) {
       return todos
         .map((t) => {
-          const icon = t.status === "completed" ? "[x]" : t.status === "in_progress" ? "[~]" : "[ ]";
+          const icon =
+            t.status === "completed"
+              ? "[x]"
+              : t.status === "in_progress"
+                ? "[~]"
+                : "[ ]";
           return `${icon} ${t.content}`;
         })
         .join("\n");
@@ -113,7 +142,10 @@ export function formatToolExpandedContent(toolName: string, toolInput?: Record<s
   if (name === "write" || name.includes("write")) {
     const fileContent = toolInput.content as string | undefined;
     if (fileContent) {
-      const preview = fileContent.length > 1000 ? fileContent.slice(0, 1000) + "\n..." : fileContent;
+      const preview =
+        fileContent.length > 1000
+          ? fileContent.slice(0, 1000) + "\n..."
+          : fileContent;
       return preview;
     }
     return "";
@@ -139,10 +171,18 @@ export function formatToolExpandedContent(toolName: string, toolInput?: Record<s
   }
 
   // Read/Grep/Glob/LS: detail is already in header, nothing extra needed
-  if (name === "read" || name.includes("read") ||
-      name === "grep" || name.includes("grep") || name.includes("search") ||
-      name === "glob" || name.includes("glob") || name.includes("find") ||
-      name === "ls" || name === "listdir") {
+  if (
+    name === "read" ||
+    name.includes("read") ||
+    name === "grep" ||
+    name.includes("grep") ||
+    name.includes("search") ||
+    name === "glob" ||
+    name.includes("glob") ||
+    name.includes("find") ||
+    name === "ls" ||
+    name === "listdir"
+  ) {
     return "";
   }
 
@@ -168,22 +208,33 @@ export function extractToolName(content: string): string {
 }
 
 /** Extract tool name + input from the nested raw API response */
-export function extractToolFromRaw(raw: Record<string, unknown> | undefined): { name?: string; input?: Record<string, unknown> } {
+export function extractToolFromRaw(raw: Record<string, unknown> | undefined): {
+  name?: string;
+  input?: Record<string, unknown>;
+} {
   if (!raw) return {};
 
   // Direct: raw.name, raw.input (simple format)
   if (typeof raw.name === "string") {
-    return { name: raw.name, input: raw.input as Record<string, unknown> | undefined };
+    return {
+      name: raw.name,
+      input: raw.input as Record<string, unknown> | undefined,
+    };
   }
 
   // Nested in raw.message.content[0] (full API response format)
   const message = raw.message as Record<string, unknown> | undefined;
   if (message) {
-    const msgContent = message.content as Array<Record<string, unknown>> | undefined;
+    const msgContent = message.content as
+      | Array<Record<string, unknown>>
+      | undefined;
     if (msgContent && msgContent.length > 0) {
       const first = msgContent[0]!;
       if (typeof first.name === "string") {
-        return { name: first.name, input: first.input as Record<string, unknown> | undefined };
+        return {
+          name: first.name,
+          input: first.input as Record<string, unknown> | undefined,
+        };
       }
     }
   }
@@ -193,7 +244,10 @@ export function extractToolFromRaw(raw: Record<string, unknown> | undefined): { 
   if (content && content.length > 0) {
     const first = content[0]!;
     if (typeof first.name === "string") {
-      return { name: first.name, input: first.input as Record<string, unknown> | undefined };
+      return {
+        name: first.name,
+        input: first.input as Record<string, unknown> | undefined,
+      };
     }
   }
 
@@ -202,7 +256,11 @@ export function extractToolFromRaw(raw: Record<string, unknown> | undefined): { 
   if (item && typeof item.name === "string") {
     let input: Record<string, unknown> | undefined;
     if (typeof item.arguments === "string" && item.arguments) {
-      try { input = JSON.parse(item.arguments as string) as Record<string, unknown>; } catch { /* ignore */ }
+      try {
+        input = JSON.parse(item.arguments as string) as Record<string, unknown>;
+      } catch {
+        /* ignore */
+      }
     }
     return { name: item.name, input };
   }
@@ -211,7 +269,10 @@ export function extractToolFromRaw(raw: Record<string, unknown> | undefined): { 
 }
 
 /** Extract meaningful text from tool_result, avoiding full JSON dump */
-export function extractToolResultContent(raw: Record<string, unknown> | undefined, fallback: string): string {
+export function extractToolResultContent(
+  raw: Record<string, unknown> | undefined,
+  fallback: string,
+): string {
   if (raw) {
     // Direct content string
     if (typeof raw.content === "string") return raw.content;
@@ -222,10 +283,18 @@ export function extractToolResultContent(raw: Record<string, unknown> | undefine
     // Nested in raw.message.content[0].text
     const message = raw.message as Record<string, unknown> | undefined;
     if (message) {
-      const msgContent = message.content as Array<Record<string, unknown>> | undefined;
+      const msgContent = message.content as
+        | Array<Record<string, unknown>>
+        | undefined;
       if (msgContent && msgContent.length > 0) {
         const texts = msgContent
-          .map((c) => (typeof c.text === "string" ? c.text : typeof c.content === "string" ? c.content : null))
+          .map((c) =>
+            typeof c.text === "string"
+              ? c.text
+              : typeof c.content === "string"
+                ? c.content
+                : null,
+          )
           .filter(Boolean);
         if (texts.length > 0) return texts.join("\n");
       }
@@ -255,22 +324,34 @@ export function getToolDisplay(
   content?: string,
 ): { icon: string; label: string; detail: string } {
   const name = toolName.toLowerCase();
-  const filePath = (toolInput?.file_path as string | undefined) ?? (toolInput?.path as string | undefined);
+  const filePath =
+    (toolInput?.file_path as string | undefined) ??
+    (toolInput?.path as string | undefined);
   const command = toolInput?.command as string | undefined;
 
   if (name === "read" || name.includes("read")) {
     return { icon: "description", label: "Read", detail: filePath ?? "" };
   }
   if (name === "todowrite") {
-    const todos = toolInput?.todos as Array<{ content: string; status: string }> | undefined;
+    const todos = toolInput?.todos as
+      | Array<{ content: string; status: string }>
+      | undefined;
     const count = todos?.length ?? 0;
-    return { icon: "checklist", label: "Plan", detail: count > 0 ? `${count} items` : "" };
+    return {
+      icon: "checklist",
+      label: "Plan",
+      detail: count > 0 ? `${count} items` : "",
+    };
   }
   if (name === "write" || name.includes("write")) {
     const fileContent = toolInput?.content as string | undefined;
     const lineCount = fileContent ? fileContent.split("\n").length : 0;
     const suffix = lineCount > 0 ? ` (${lineCount} lines)` : "";
-    return { icon: "edit_document", label: "Write", detail: (filePath ?? "") + suffix };
+    return {
+      icon: "edit_document",
+      label: "Write",
+      detail: (filePath ?? "") + suffix,
+    };
   }
   if (name === "edit" || name.includes("edit")) {
     const oldStr = toolInput?.old_string as string | undefined;
@@ -281,7 +362,11 @@ export function getToolDisplay(
     return { icon: "edit", label: "Edit", detail: (filePath ?? "") + suffix };
   }
   if (name === "bash" || name.includes("bash") || name.includes("shell")) {
-    const cmd = command ? (command.length > 80 ? command.slice(0, 80) + "..." : command) : "";
+    const cmd = command
+      ? command.length > 80
+        ? command.slice(0, 80) + "..."
+        : command
+      : "";
     return { icon: "terminal", label: "Bash", detail: cmd };
   }
   if (name === "grep" || name.includes("grep") || name.includes("search")) {
@@ -305,6 +390,12 @@ export function getToolDisplay(
   }
 
   // Fallback: show tool name, but never raw JSON as detail
-  const fallbackDetail = content && content.length <= 100 && !content.startsWith("{") && !content.startsWith("[") ? content : "";
+  const fallbackDetail =
+    content &&
+    content.length <= 100 &&
+    !content.startsWith("{") &&
+    !content.startsWith("[")
+      ? content
+      : "";
   return { icon: "build", label: toolName, detail: fallbackDetail };
 }

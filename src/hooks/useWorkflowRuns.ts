@@ -54,41 +54,36 @@ export function useWorkflowRunStream(runId: string | undefined) {
 
     controllerRef.current?.abort();
 
-    const controller = connectToWorkflowRunStream(
-      serverUrl,
-      runId,
-      token,
-      {
-        onConnected: (data) => {
-          setState((prev) => ({
-            ...prev,
-            connected: true,
-            runStatus: data.status,
-            error: null,
-          }));
-        },
-        onEvent: (event) => {
-          setState((prev) => ({
-            ...prev,
-            events: [...prev.events, event],
-          }));
-        },
-        onDone: (data) => {
-          setState((prev) => ({
-            ...prev,
-            connected: false,
-            runStatus: data.status,
-          }));
-        },
-        onError: (err) => {
-          setState((prev) => ({
-            ...prev,
-            connected: false,
-            error: err.message,
-          }));
-        },
+    const controller = connectToWorkflowRunStream(serverUrl, runId, token, {
+      onConnected: (data) => {
+        setState((prev) => ({
+          ...prev,
+          connected: true,
+          runStatus: data.status,
+          error: null,
+        }));
       },
-    );
+      onEvent: (event) => {
+        setState((prev) => ({
+          ...prev,
+          events: [...prev.events, event],
+        }));
+      },
+      onDone: (data) => {
+        setState((prev) => ({
+          ...prev,
+          connected: false,
+          runStatus: data.status,
+        }));
+      },
+      onError: (err) => {
+        setState((prev) => ({
+          ...prev,
+          connected: false,
+          error: err.message,
+        }));
+      },
+    });
 
     controllerRef.current = controller;
   }, [runId, serverUrl, token]);

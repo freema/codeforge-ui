@@ -23,14 +23,7 @@ const MODELS_BY_CLI: Record<string, { default: string; models: string[] }> = {
   },
   codex: {
     default: "gpt-4.1",
-    models: [
-      "gpt-5.2",
-      "gpt-5.1",
-      "gpt-5",
-      "gpt-4.1",
-      "o3",
-      "o4-mini",
-    ],
+    models: ["gpt-5.2", "gpt-5.1", "gpt-5", "gpt-4.1", "o3", "o4-mini"],
   },
 };
 
@@ -52,7 +45,10 @@ export default function NewSession() {
   const createSession = useCreateSession();
   const { data: allKeys } = useKeys();
   const keys = useMemo(
-    () => allKeys?.filter((k) => k.provider === "github" || k.provider === "gitlab"),
+    () =>
+      allKeys?.filter(
+        (k) => k.provider === "github" || k.provider === "gitlab",
+      ),
     [allKeys],
   );
   const { data: mcpServers } = useMCPServers();
@@ -121,17 +117,17 @@ export default function NewSession() {
   }, [availableClis, selectedCli]);
 
   // Models available for the selected CLI
-  const cliConfig = useMemo(
-    () => MODELS_BY_CLI[selectedCli],
-    [selectedCli],
-  );
+  const cliConfig = useMemo(() => MODELS_BY_CLI[selectedCli], [selectedCli]);
   const defaultModelLabel = cliConfig
     ? `Default (${cliConfig.default})`
     : "Default";
 
   const selectedSessionType = taskTypes?.find((t) => t.name === taskType);
-  const sessionTypeHint = SESSION_TYPE_HINTS[taskType] ?? selectedSessionType?.description ?? "";
-  const sessionTypePlaceholder = selectedSessionType?.description ?? "Describe what the AI agent should do with this repository...";
+  const sessionTypeHint =
+    SESSION_TYPE_HINTS[taskType] ?? selectedSessionType?.description ?? "";
+  const sessionTypePlaceholder =
+    selectedSessionType?.description ??
+    "Describe what the AI agent should do with this repository...";
 
   function handleRepoSelect(repo: Repository) {
     setSelectedRepo(repo);
@@ -185,7 +181,9 @@ export default function NewSession() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-10">
-        <h1 className="text-4xl font-bold tracking-tight text-fg">New Session</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-fg">
+          New Session
+        </h1>
         <p className="mt-2 text-sm text-fg-3">
           Configure and launch an AI coding session
         </p>
@@ -240,7 +238,9 @@ export default function NewSession() {
               />
               {selectedRepo && (
                 <div className="flex items-center gap-3 rounded-lg border border-accent/20 bg-accent/5 p-3">
-                  <span className="material-symbols-outlined text-accent">check_circle</span>
+                  <span className="material-symbols-outlined text-accent">
+                    check_circle
+                  </span>
                   <div>
                     <p className="text-sm font-medium text-fg">
                       {selectedRepo.full_name}
@@ -254,7 +254,9 @@ export default function NewSession() {
             </div>
           ) : providerKey && reposLoading ? (
             <div className="flex items-center gap-3 rounded-lg border border-edge bg-surface p-4">
-              <span className="material-symbols-outlined animate-spin text-accent">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-accent">
+                progress_activity
+              </span>
               <span className="text-sm text-fg-3">Loading repositories...</span>
             </div>
           ) : (
@@ -369,9 +371,7 @@ export default function NewSession() {
             rows={5}
             className={inputCls + " resize-none"}
           />
-          <p className="mt-2 text-xs text-fg-4">
-            {sessionTypeHint}
-          </p>
+          <p className="mt-2 text-xs text-fg-4">{sessionTypeHint}</p>
         </div>
 
         {/* CLI & Model row */}
@@ -402,7 +402,8 @@ export default function NewSession() {
               onChange={setAiModel}
               options={[
                 { value: "", label: defaultModelLabel },
-                ...(cliConfig?.models.map((m) => ({ value: m, label: m })) ?? []),
+                ...(cliConfig?.models.map((m) => ({ value: m, label: m })) ??
+                  []),
               ]}
             />
           </div>
@@ -427,7 +428,9 @@ export default function NewSession() {
                   }`}
                 >
                   <span className="material-symbols-outlined text-lg">
-                    {selectedMcp.includes(s.name) ? "check_circle" : "extension"}
+                    {selectedMcp.includes(s.name)
+                      ? "check_circle"
+                      : "extension"}
                   </span>
                   {s.name}
                 </button>
@@ -450,7 +453,10 @@ export default function NewSession() {
               <span className="material-symbols-outlined text-base">tune</span>
               Advanced Configuration
             </div>
-            <span className="material-symbols-outlined text-base transition-transform" style={{ transform: showAdvanced ? "rotate(180deg)" : "none" }}>
+            <span
+              className="material-symbols-outlined text-base transition-transform"
+              style={{ transform: showAdvanced ? "rotate(180deg)" : "none" }}
+            >
               expand_more
             </span>
           </button>
@@ -509,7 +515,6 @@ export default function NewSession() {
                   className={inputCls}
                 />
               </div>
-
             </div>
           )}
         </div>
@@ -517,7 +522,9 @@ export default function NewSession() {
         {/* Error */}
         {error && (
           <div className="flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-900/10 p-4">
-            <span className="material-symbols-outlined text-red-400">error</span>
+            <span className="material-symbols-outlined text-red-400">
+              error
+            </span>
             <p className="text-sm text-red-400">{error}</p>
           </div>
         )}
@@ -537,7 +544,9 @@ export default function NewSession() {
             className="flex items-center gap-2 rounded-lg bg-accent px-8 py-3 text-sm font-bold text-page shadow-[0_0_20px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover hover:shadow-[0_0_30px_rgba(0,255,64,0.5)] disabled:opacity-40 disabled:shadow-none"
           >
             {createSession.isPending ? (
-              <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
+              <span className="material-symbols-outlined text-xl animate-spin">
+                progress_activity
+              </span>
             ) : (
               <span className="material-symbols-outlined text-xl">bolt</span>
             )}
@@ -581,7 +590,9 @@ function RepoSelector({
         className="flex w-full items-center justify-between rounded-lg border border-edge bg-surface p-3 text-left transition-colors hover:border-fg-4"
       >
         <span className="text-sm text-fg font-mono">{selected.full_name}</span>
-        <span className="material-symbols-outlined text-sm text-fg-3">unfold_more</span>
+        <span className="material-symbols-outlined text-sm text-fg-3">
+          unfold_more
+        </span>
       </button>
     );
   }
@@ -604,7 +615,9 @@ function RepoSelector({
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <span className="material-symbols-outlined animate-spin text-accent">progress_activity</span>
+          <span className="material-symbols-outlined animate-spin text-accent">
+            progress_activity
+          </span>
         </div>
       ) : (
         <div className="max-h-64 overflow-y-auto rounded-lg border border-edge">
@@ -623,9 +636,7 @@ function RepoSelector({
                   setSearch("");
                 }}
                 className={`flex w-full items-center gap-3 border-b border-edge p-3 text-left transition-colors last:border-b-0 hover:bg-accent/5 ${
-                  selected?.full_name === repo.full_name
-                    ? "bg-accent/10"
-                    : ""
+                  selected?.full_name === repo.full_name ? "bg-accent/10" : ""
                 }`}
               >
                 <span className="material-symbols-outlined text-fg-4 text-lg">

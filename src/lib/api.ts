@@ -94,7 +94,8 @@ export function createApiClient(serverUrl: string, token: string) {
     // Sessions
     listSessions: () =>
       get<{ sessions: Session[] }>("/sessions").then((r) => r.sessions),
-    createSession: (req: CreateSessionRequest) => post<Session>("/sessions", req),
+    createSession: (req: CreateSessionRequest) =>
+      post<Session>("/sessions", req),
     getSession: (id: string, include?: string) =>
       get<Session>(`/sessions/${id}${include ? `?include=${include}` : ""}`),
     cancelSession: (id: string) => post<void>(`/sessions/${id}/cancel`),
@@ -109,7 +110,9 @@ export function createApiClient(serverUrl: string, token: string) {
 
     // Session Types
     listSessionTypes: () =>
-      get<{ session_types: SessionType[] }>("/session-types").then((r) => r.session_types),
+      get<{ session_types: SessionType[] }>("/session-types").then(
+        (r) => r.session_types,
+      ),
 
     // Repositories
     listRepositories: (providerKey: string) =>
@@ -132,8 +135,7 @@ export function createApiClient(serverUrl: string, token: string) {
     listCLIs: () => get<{ cli: CLIEntry[] }>("/cli").then((r) => r.cli),
 
     // Keys
-    listKeys: () =>
-      get<{ keys: ProviderKey[] }>("/keys").then((r) => r.keys),
+    listKeys: () => get<{ keys: ProviderKey[] }>("/keys").then((r) => r.keys),
     createKey: (req: CreateKeyRequest) => post<void>("/keys", req),
     deleteKey: (name: string) => del<void>(`/keys/${name}`),
     verifyKey: (name: string) => get<KeyVerifyResult>(`/keys/${name}/verify`),
@@ -147,10 +149,9 @@ export function createApiClient(serverUrl: string, token: string) {
 
     // Workspaces
     listWorkspaces: () =>
-      get<{ workspaces: Workspace[] }>("/workspaces").then(
-        (r) => r.workspaces,
-      ),
-    deleteWorkspace: (sessionId: string) => del<void>(`/workspaces/${sessionId}`),
+      get<{ workspaces: Workspace[] }>("/workspaces").then((r) => r.workspaces),
+    deleteWorkspace: (sessionId: string) =>
+      del<void>(`/workspaces/${sessionId}`),
 
     // Workflows
     listWorkflows: () =>
@@ -166,10 +167,7 @@ export function createApiClient(serverUrl: string, token: string) {
 
     // Workflow Runs
     runWorkflow: (name: string, req?: RunWorkflowRequest) =>
-      post<WorkflowRun>(
-        `/workflows/${encodeURIComponent(name)}/run`,
-        req,
-      ),
+      post<WorkflowRun>(`/workflows/${encodeURIComponent(name)}/run`, req),
     listWorkflowRuns: (workflowName?: string) =>
       get<{ runs: WorkflowRun[] }>(
         `/workflow-runs${workflowName ? `?workflow=${encodeURIComponent(workflowName)}` : ""}`,

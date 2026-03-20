@@ -1,4 +1,10 @@
-import { useState, useEffect, useMemo, useCallback, type FormEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  type FormEvent,
+} from "react";
 import { useKeys } from "../hooks/useKeys";
 import { useRepositories } from "../hooks/useRepositories";
 import {
@@ -10,7 +16,12 @@ import {
 } from "../hooks/useSentry";
 import { useWorkflowRuns } from "../hooks/useWorkflowRuns";
 import { useWorkflowRunStream } from "../hooks/useWorkflowRuns";
-import type { SentryConfig, SentryIssue, ProviderKey, WorkflowRun } from "../types";
+import type {
+  SentryConfig,
+  SentryIssue,
+  ProviderKey,
+  WorkflowRun,
+} from "../types";
 
 const STORAGE_KEY = "sentry-configs";
 const ACTIVE_KEY = "sentry-active-config";
@@ -134,7 +145,7 @@ export default function SentryTab({
       <SentryConfigForm
         sentryKeys={sentryKeys}
         allKeys={keys ?? []}
-        initial={editingIdx === -1 ? null : configs[editingIdx] ?? null}
+        initial={editingIdx === -1 ? null : (configs[editingIdx] ?? null)}
         onSave={handleSaveConfig}
         onCancel={() => setEditingIdx(null)}
       />
@@ -173,24 +184,38 @@ export default function SentryTab({
                     : "border-edge bg-surface text-fg-3 hover:border-fg-4 hover:text-fg-2"
                 }`}
               >
-                <span className="material-symbols-outlined text-sm">bug_report</span>
-                <span className="font-mono">{cfg.label || `${cfg.org_slug}/${cfg.project_slug}`}</span>
+                <span className="material-symbols-outlined text-sm">
+                  bug_report
+                </span>
+                <span className="font-mono">
+                  {cfg.label || `${cfg.org_slug}/${cfg.project_slug}`}
+                </span>
               </button>
               {/* Edit/Delete on hover */}
               <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setEditingIdx(idx); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingIdx(idx);
+                  }}
                   className="flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-edge text-fg-4 hover:text-accent hover:border-accent/30 transition-colors"
                   title="Edit"
                 >
-                  <span className="material-symbols-outlined text-[11px]">edit</span>
+                  <span className="material-symbols-outlined text-[11px]">
+                    edit
+                  </span>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteIdx(idx); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDeleteIdx(idx);
+                  }}
                   className="flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-edge text-fg-4 hover:text-red-400 hover:border-red-500/30 transition-colors"
                   title="Delete"
                 >
-                  <span className="material-symbols-outlined text-[11px]">close</span>
+                  <span className="material-symbols-outlined text-[11px]">
+                    close
+                  </span>
                 </button>
               </div>
             </div>
@@ -209,7 +234,10 @@ export default function SentryTab({
       {confirmDeleteIdx !== null && (
         <div className="flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-900/10 px-4 py-2.5">
           <span className="text-xs text-red-400">
-            Delete "{configs[confirmDeleteIdx]?.label || configs[confirmDeleteIdx]?.project_slug}"?
+            Delete "
+            {configs[confirmDeleteIdx]?.label ||
+              configs[confirmDeleteIdx]?.project_slug}
+            "?
           </span>
           <button
             onClick={() => handleDeleteConfig(confirmDeleteIdx)}
@@ -243,7 +271,9 @@ function SentrySetup({ onSwitchToKeys }: { onSwitchToKeys: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl border border-edge bg-surface/50 py-16">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-edge bg-surface">
-        <span className="material-symbols-outlined text-3xl text-fg-3">bug_report</span>
+        <span className="material-symbols-outlined text-3xl text-fg-3">
+          bug_report
+        </span>
       </div>
       <div className="text-center">
         <h3 className="text-lg font-semibold text-fg">Connect Sentry</h3>
@@ -278,14 +308,18 @@ function SentryConfigForm({
   onCancel?: () => void;
 }) {
   const [label, setLabel] = useState(initial?.label ?? "");
-  const [keyName, setKeyName] = useState(initial?.key_name ?? sentryKeys[0]?.name ?? "");
+  const [keyName, setKeyName] = useState(
+    initial?.key_name ?? sentryKeys[0]?.name ?? "",
+  );
   const [orgSlug, setOrgSlug] = useState(initial?.org_slug ?? "");
   const [projectSlug, setProjectSlug] = useState(initial?.project_slug ?? "");
   const [repoUrl, setRepoUrl] = useState(initial?.repo_url ?? "");
   const [providerKey, setProviderKey] = useState(initial?.provider_key ?? "");
 
   // Auto-detect organizations from selected key
-  const { data: sentryOrgs, isLoading: orgsLoading } = useSentryOrganizations(keyName || undefined);
+  const { data: sentryOrgs, isLoading: orgsLoading } = useSentryOrganizations(
+    keyName || undefined,
+  );
 
   // Auto-select org when there's only one
   useEffect(() => {
@@ -294,13 +328,12 @@ function SentryConfigForm({
     }
   }, [sentryOrgs, orgSlug]);
 
-  const { data: sentryProjects, isLoading: projectsLoading } = useSentryProjects(
-    keyName || undefined,
-    orgSlug || undefined,
-  );
+  const { data: sentryProjects, isLoading: projectsLoading } =
+    useSentryProjects(keyName || undefined, orgSlug || undefined);
 
   const gitKeys = useMemo(
-    () => allKeys.filter((k) => k.provider === "github" || k.provider === "gitlab"),
+    () =>
+      allKeys.filter((k) => k.provider === "github" || k.provider === "gitlab"),
     [allKeys],
   );
 
@@ -311,7 +344,9 @@ function SentryConfigForm({
     }
   }, [gitKeys, providerKey]);
 
-  const { data: repos, isLoading: reposLoading } = useRepositories(providerKey || undefined);
+  const { data: repos, isLoading: reposLoading } = useRepositories(
+    providerKey || undefined,
+  );
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -332,7 +367,9 @@ function SentryConfigForm({
     >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
-          <span className="material-symbols-outlined text-accent text-base">settings</span>
+          <span className="material-symbols-outlined text-accent text-base">
+            settings
+          </span>
           Sentry Configuration
         </h3>
         {onCancel && (
@@ -350,7 +387,9 @@ function SentryConfigForm({
       <div className="space-y-4">
         {/* Label */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Label</label>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Label
+          </label>
           <input
             type="text"
             value={label}
@@ -358,21 +397,39 @@ function SentryConfigForm({
             placeholder="e.g. Production, Staging..."
             className={inputCls}
           />
-          <p className="mt-1 text-[11px] text-fg-4">Optional name to identify this configuration</p>
+          <p className="mt-1 text-[11px] text-fg-4">
+            Optional name to identify this configuration
+          </p>
         </div>
 
         {/* Sentry Key */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Sentry Key</label>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Sentry Key
+          </label>
           {sentryKeys.length === 1 ? (
-            <div className={`flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 text-sm text-accent font-mono`}>
-              <span className="material-symbols-outlined text-base">vpn_key</span>
+            <div
+              className={`flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 text-sm text-accent font-mono`}
+            >
+              <span className="material-symbols-outlined text-base">
+                vpn_key
+              </span>
               {sentryKeys[0]!.name}
             </div>
           ) : (
-            <select value={keyName} onChange={(e) => { setKeyName(e.target.value); setOrgSlug(""); setProjectSlug(""); }} className={selectCls}>
+            <select
+              value={keyName}
+              onChange={(e) => {
+                setKeyName(e.target.value);
+                setOrgSlug("");
+                setProjectSlug("");
+              }}
+              className={selectCls}
+            >
               {sentryKeys.map((k) => (
-                <option key={k.name} value={k.name}>{k.name}</option>
+                <option key={k.name} value={k.name}>
+                  {k.name}
+                </option>
               ))}
             </select>
           )}
@@ -380,34 +437,51 @@ function SentryConfigForm({
 
         {/* Organization */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Organization</label>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Organization
+          </label>
           {orgsLoading ? (
             <div className="flex items-center gap-2 py-2 text-xs text-fg-4">
-              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-sm">
+                progress_activity
+              </span>
               Loading organizations...
             </div>
           ) : sentryOrgs && sentryOrgs.length === 1 ? (
-            <div className={`flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 text-sm text-accent font-mono`}>
-              <span className="material-symbols-outlined text-base">apartment</span>
-              {sentryOrgs[0]!.name} <span className="text-fg-4">({sentryOrgs[0]!.slug})</span>
+            <div
+              className={`flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 text-sm text-accent font-mono`}
+            >
+              <span className="material-symbols-outlined text-base">
+                apartment
+              </span>
+              {sentryOrgs[0]!.name}{" "}
+              <span className="text-fg-4">({sentryOrgs[0]!.slug})</span>
             </div>
           ) : sentryOrgs && sentryOrgs.length > 1 ? (
             <select
               value={orgSlug}
-              onChange={(e) => { setOrgSlug(e.target.value); setProjectSlug(""); }}
+              onChange={(e) => {
+                setOrgSlug(e.target.value);
+                setProjectSlug("");
+              }}
               required
               className={selectCls}
             >
               <option value="">Select organization...</option>
               {sentryOrgs.map((o) => (
-                <option key={o.slug} value={o.slug}>{o.name} ({o.slug})</option>
+                <option key={o.slug} value={o.slug}>
+                  {o.name} ({o.slug})
+                </option>
               ))}
             </select>
           ) : (
             <input
               type="text"
               value={orgSlug}
-              onChange={(e) => { setOrgSlug(e.target.value); setProjectSlug(""); }}
+              onChange={(e) => {
+                setOrgSlug(e.target.value);
+                setProjectSlug("");
+              }}
               placeholder="my-org"
               required
               className={inputCls}
@@ -417,10 +491,14 @@ function SentryConfigForm({
 
         {/* Project */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Project</label>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Project
+          </label>
           {projectsLoading && orgSlug ? (
             <div className="flex items-center gap-2 py-2 text-xs text-fg-4">
-              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-sm">
+                progress_activity
+              </span>
               Loading projects...
             </div>
           ) : sentryProjects && sentryProjects.length > 0 ? (
@@ -432,7 +510,9 @@ function SentryConfigForm({
             >
               <option value="">Select project...</option>
               {sentryProjects.map((p) => (
-                <option key={p.id} value={p.slug}>{p.name} ({p.slug})</option>
+                <option key={p.id} value={p.slug}>
+                  {p.name} ({p.slug})
+                </option>
               ))}
             </select>
           ) : orgSlug ? (
@@ -445,31 +525,47 @@ function SentryConfigForm({
               className={inputCls}
             />
           ) : (
-            <p className="py-2 text-xs text-fg-4">Select an organization first</p>
+            <p className="py-2 text-xs text-fg-4">
+              Select an organization first
+            </p>
           )}
         </div>
 
         {/* Git Provider Key */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Git Provider Key (for PRs)</label>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Git Provider Key (for PRs)
+          </label>
           {gitKeys.length > 0 ? (
-            <select value={providerKey} onChange={(e) => setProviderKey(e.target.value)} className={selectCls}>
+            <select
+              value={providerKey}
+              onChange={(e) => setProviderKey(e.target.value)}
+              className={selectCls}
+            >
               <option value="">None</option>
               {gitKeys.map((k) => (
-                <option key={k.name} value={k.name}>{k.name} ({k.provider})</option>
+                <option key={k.name} value={k.name}>
+                  {k.name} ({k.provider})
+                </option>
               ))}
             </select>
           ) : (
-            <p className="py-2 text-xs text-fg-4">No GitHub/GitLab keys configured</p>
+            <p className="py-2 text-xs text-fg-4">
+              No GitHub/GitLab keys configured
+            </p>
           )}
         </div>
 
         {/* Repository URL */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Repository</label>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Repository
+          </label>
           {reposLoading && providerKey ? (
             <div className="flex items-center gap-2 py-2 text-xs text-fg-4">
-              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-sm">
+                progress_activity
+              </span>
               Loading repositories...
             </div>
           ) : repos && repos.length > 0 ? (
@@ -481,7 +577,9 @@ function SentryConfigForm({
             >
               <option value="">Select a repository</option>
               {repos.map((r) => (
-                <option key={r.clone_url} value={r.clone_url}>{r.full_name}</option>
+                <option key={r.clone_url} value={r.clone_url}>
+                  {r.full_name}
+                </option>
               ))}
             </select>
           ) : (
@@ -526,7 +624,14 @@ function SentryIssuesView({
   const [drawerIssueId, setDrawerIssueId] = useState<string | null>(null);
   const [fixingIds, setFixingIds] = useState<Map<string, string>>(new Map()); // issueId -> runId
 
-  const sortParam = sort === "freq" ? "freq" : sort === "new" ? "new" : sort === "priority" ? "priority" : "date";
+  const sortParam =
+    sort === "freq"
+      ? "freq"
+      : sort === "new"
+        ? "new"
+        : sort === "priority"
+          ? "priority"
+          : "date";
 
   const {
     data: issues,
@@ -540,10 +645,7 @@ function SentryIssuesView({
   const fixIssue = useFixSentryIssue();
 
   const { data: runs } = useWorkflowRuns("sentry-fixer");
-  const recentRuns = useMemo(
-    () => (runs ?? []).slice(0, 10),
-    [runs],
-  );
+  const recentRuns = useMemo(() => (runs ?? []).slice(0, 10), [runs]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -595,7 +697,9 @@ function SentryIssuesView({
               issue_id: issue.id,
               repo_url: config.repo_url,
               key_name: config.key_name,
-              ...(config.provider_key ? { provider_key: config.provider_key } : {}),
+              ...(config.provider_key
+                ? { provider_key: config.provider_key }
+                : {}),
             },
           });
           newFixing.set(issue.id, run.id);
@@ -614,7 +718,9 @@ function SentryIssuesView({
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <h3 className="flex items-center gap-2 text-lg font-semibold text-fg">
-          <span className="material-symbols-outlined text-accent">bug_report</span>
+          <span className="material-symbols-outlined text-accent">
+            bug_report
+          </span>
           Sentry Issues
         </h3>
         <div className="flex items-center gap-2">
@@ -648,7 +754,9 @@ function SentryIssuesView({
           <option value="priority">Priority</option>
         </select>
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-4">search</span>
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-4">
+            search
+          </span>
           <input
             type="text"
             value={search}
@@ -671,7 +779,9 @@ function SentryIssuesView({
             className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-xs font-bold text-page transition-all hover:bg-accent-hover disabled:opacity-50"
           >
             {fixIssue.isPending ? (
-              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin text-sm">
+                progress_activity
+              </span>
             ) : (
               <span className="material-symbols-outlined text-sm">build</span>
             )}
@@ -690,7 +800,10 @@ function SentryIssuesView({
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl bg-surface-alt" />
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-xl bg-surface-alt"
+            />
           ))}
         </div>
       ) : issues && issues.length > 0 ? (
@@ -726,7 +839,9 @@ function SentryIssuesView({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <span className="material-symbols-outlined text-3xl text-fg-4">check_circle</span>
+          <span className="material-symbols-outlined text-3xl text-fg-4">
+            check_circle
+          </span>
           <p className="text-sm text-fg-3">No unresolved issues found</p>
         </div>
       )}
@@ -737,9 +852,7 @@ function SentryIssuesView({
       )}
 
       {/* Run history */}
-      {recentRuns.length > 0 && (
-        <RunHistorySection runs={recentRuns} />
-      )}
+      {recentRuns.length > 0 && <RunHistorySection runs={recentRuns} />}
 
       {/* Issue drawer */}
       {drawerIssueId && (
@@ -810,8 +923,12 @@ function IssueRow({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="shrink-0 font-mono text-[11px] text-fg-4">{issue.shortId}</span>
-            <span className="truncate text-sm font-medium text-fg">{issue.title}</span>
+            <span className="shrink-0 font-mono text-[11px] text-fg-4">
+              {issue.shortId}
+            </span>
+            <span className="truncate text-sm font-medium text-fg">
+              {issue.title}
+            </span>
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-4">
             <span className="truncate">{issue.culprit}</span>
@@ -824,7 +941,9 @@ function IssueRow({
           <span className="rounded-full border border-edge bg-surface px-2 py-0.5 font-mono text-[11px] text-fg-3">
             {issue.count}x
           </span>
-          <div className={`h-2.5 w-2.5 rounded-full ${LEVEL_COLORS[issue.level] ?? "bg-gray-500"}`} />
+          <div
+            className={`h-2.5 w-2.5 rounded-full ${LEVEL_COLORS[issue.level] ?? "bg-gray-500"}`}
+          />
         </div>
       </button>
 
@@ -832,7 +951,10 @@ function IssueRow({
         <InlineRunStatus runId={runId} />
       ) : (
         <button
-          onClick={(e) => { e.stopPropagation(); onFix(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFix();
+          }}
           disabled={isFixing}
           className="shrink-0 flex items-center gap-1 rounded-lg border border-edge px-2.5 py-1.5 text-[11px] font-medium text-fg-3 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
         >
@@ -876,7 +998,9 @@ function InlineRunStatus({ runId }: { runId: string }) {
     <div className="flex shrink-0 items-center gap-1.5">
       <span
         className={`material-symbols-outlined text-sm ${statusColor} ${
-          stream.runStatus === "running" || stream.runStatus === "pending" ? "animate-spin" : ""
+          stream.runStatus === "running" || stream.runStatus === "pending"
+            ? "animate-spin"
+            : ""
         }`}
       >
         {statusIcon}
@@ -902,7 +1026,10 @@ function SentryIssueDrawer({
   onClose: () => void;
   onFix: (issue: SentryIssue) => void;
 }) {
-  const { data: event, isLoading: eventLoading } = useSentryLatestEvent(keyName, issueId);
+  const { data: event, isLoading: eventLoading } = useSentryLatestEvent(
+    keyName,
+    issueId,
+  );
 
   // Extract stacktrace from event entries
   const exceptionEntry = useMemo(
@@ -975,7 +1102,9 @@ function SentryIssueDrawer({
       <div className="relative w-full max-w-2xl overflow-y-auto border-l border-edge bg-page">
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-edge bg-page/95 backdrop-blur-sm px-6 py-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-fg-2">Issue Detail</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-fg-2">
+            Issue Detail
+          </h3>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
@@ -991,7 +1120,10 @@ function SentryIssueDrawer({
           {eventLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 animate-pulse rounded-lg bg-surface-alt" />
+                <div
+                  key={i}
+                  className="h-20 animate-pulse rounded-lg bg-surface-alt"
+                />
               ))}
             </div>
           ) : (
@@ -1000,7 +1132,9 @@ function SentryIssueDrawer({
               {exceptionMeta && (
                 <div className="rounded-xl border border-edge bg-surface-alt p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-red-400">error</span>
+                    <span className="material-symbols-outlined text-red-400">
+                      error
+                    </span>
                     <span className="font-mono text-sm font-bold text-red-400">
                       {exceptionMeta.type}
                     </span>
@@ -1019,7 +1153,9 @@ function SentryIssueDrawer({
               {event && event.tags.length > 0 && (
                 <div>
                   <h4 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fg-3">
-                    <span className="material-symbols-outlined text-sm">label</span>
+                    <span className="material-symbols-outlined text-sm">
+                      label
+                    </span>
                     Tags
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
@@ -1039,7 +1175,9 @@ function SentryIssueDrawer({
               {stackFrames.length > 0 && (
                 <div>
                   <h4 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fg-3">
-                    <span className="material-symbols-outlined text-sm">layers</span>
+                    <span className="material-symbols-outlined text-sm">
+                      layers
+                    </span>
                     Stack Trace
                   </h4>
                   <div className="rounded-xl border border-edge overflow-hidden">
@@ -1070,9 +1208,15 @@ function SentryIssueDrawer({
                             {frame.context.map(([lineNo, code]) => (
                               <div
                                 key={lineNo}
-                                className={lineNo === frame.lineNo ? "text-fg font-medium bg-accent/10 -mx-2 px-2" : ""}
+                                className={
+                                  lineNo === frame.lineNo
+                                    ? "text-fg font-medium bg-accent/10 -mx-2 px-2"
+                                    : ""
+                                }
                               >
-                                <span className="inline-block w-8 text-right text-fg-4 mr-3 select-none">{lineNo}</span>
+                                <span className="inline-block w-8 text-right text-fg-4 mr-3 select-none">
+                                  {lineNo}
+                                </span>
                                 {code}
                               </div>
                             ))}
@@ -1088,7 +1232,9 @@ function SentryIssueDrawer({
               {breadcrumbs.length > 0 && (
                 <div>
                   <h4 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fg-3">
-                    <span className="material-symbols-outlined text-sm">timeline</span>
+                    <span className="material-symbols-outlined text-sm">
+                      timeline
+                    </span>
                     Breadcrumbs
                   </h4>
                   <div className="rounded-xl border border-edge overflow-hidden">
@@ -1097,11 +1243,15 @@ function SentryIssueDrawer({
                         key={idx}
                         className="flex items-start gap-3 border-b border-edge px-4 py-2 last:border-b-0"
                       >
-                        <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
-                          bc.level === "error" ? "bg-red-500" :
-                          bc.level === "warning" ? "bg-yellow-500" :
-                          "bg-fg-4/50"
-                        }`} />
+                        <span
+                          className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
+                            bc.level === "error"
+                              ? "bg-red-500"
+                              : bc.level === "warning"
+                                ? "bg-yellow-500"
+                                : "bg-fg-4/50"
+                          }`}
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[11px] font-medium text-fg-3">
@@ -1114,7 +1264,9 @@ function SentryIssueDrawer({
                             )}
                           </div>
                           {bc.message && (
-                            <p className="mt-0.5 truncate font-mono text-[11px] text-fg-4">{bc.message}</p>
+                            <p className="mt-0.5 truncate font-mono text-[11px] text-fg-4">
+                              {bc.message}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -1127,13 +1279,31 @@ function SentryIssueDrawer({
               {event?.user && (
                 <div>
                   <h4 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fg-3">
-                    <span className="material-symbols-outlined text-sm">person</span>
+                    <span className="material-symbols-outlined text-sm">
+                      person
+                    </span>
                     User
                   </h4>
                   <div className="rounded-lg border border-edge bg-surface-alt px-4 py-3 font-mono text-xs text-fg-3">
-                    {event.user.email && <div>Email: <span className="text-fg-2">{event.user.email}</span></div>}
-                    {event.user.id && <div>ID: <span className="text-fg-2">{event.user.id}</span></div>}
-                    {event.user.ip_address && <div>IP: <span className="text-fg-2">{event.user.ip_address}</span></div>}
+                    {event.user.email && (
+                      <div>
+                        Email:{" "}
+                        <span className="text-fg-2">{event.user.email}</span>
+                      </div>
+                    )}
+                    {event.user.id && (
+                      <div>
+                        ID: <span className="text-fg-2">{event.user.id}</span>
+                      </div>
+                    )}
+                    {event.user.ip_address && (
+                      <div>
+                        IP:{" "}
+                        <span className="text-fg-2">
+                          {event.user.ip_address}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1183,7 +1353,9 @@ function FixProgressSection({
   return (
     <div className="rounded-xl border border-edge bg-surface/50 p-4">
       <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fg-2">
-        <span className="material-symbols-outlined text-accent text-sm">build</span>
+        <span className="material-symbols-outlined text-accent text-sm">
+          build
+        </span>
         Fixing {entries.length} issue{entries.length !== 1 && "s"}
       </h4>
       <div className="space-y-2">
@@ -1243,15 +1415,19 @@ function FixProgressRow({
 
   return (
     <div className="flex items-center gap-3 rounded-lg border border-edge bg-surface-alt px-3 py-2">
-      <span className={`material-symbols-outlined text-base ${statusColor}`}>{statusIcon}</span>
-      <span className="shrink-0 font-mono text-[11px] text-fg-4">{shortId}</span>
+      <span className={`material-symbols-outlined text-base ${statusColor}`}>
+        {statusIcon}
+      </span>
+      <span className="shrink-0 font-mono text-[11px] text-fg-4">
+        {shortId}
+      </span>
       <span className="min-w-0 truncate text-xs text-fg-2">{title}</span>
       <span className="ml-auto shrink-0 font-mono text-[10px] text-fg-4">
         {stream.runStatus === "completed"
           ? "done"
           : stream.runStatus === "failed"
-            ? stream.error ?? "failed"
-            : currentStep ?? "starting"}
+            ? (stream.error ?? "failed")
+            : (currentStep ?? "starting")}
       </span>
     </div>
   );
@@ -1283,14 +1459,20 @@ function RunHistorySection({ runs }: { runs: WorkflowRun[] }) {
               href={`/workflows/runs/${run.id}`}
               className="flex items-center gap-3 border-b border-edge px-4 py-2.5 transition-colors hover:bg-surface-alt/50 last:border-b-0"
             >
-              <span className={`material-symbols-outlined text-base ${style.color} ${
-                run.status === "running" ? "animate-spin" : ""
-              }`}>
+              <span
+                className={`material-symbols-outlined text-base ${style.color} ${
+                  run.status === "running" ? "animate-spin" : ""
+                }`}
+              >
                 {style.icon}
               </span>
-              <span className="font-mono text-[11px] text-fg-4">{run.id.slice(0, 8)}</span>
+              <span className="font-mono text-[11px] text-fg-4">
+                {run.id.slice(0, 8)}
+              </span>
               <span className="min-w-0 truncate text-xs text-fg-3">
-                {run.params?.issue_id ? `Issue ${run.params.issue_id}` : "sentry-fixer"}
+                {run.params?.issue_id
+                  ? `Issue ${run.params.issue_id}`
+                  : "sentry-fixer"}
               </span>
               <span className="ml-auto shrink-0 text-[10px] text-fg-4">
                 {relativeTime(run.created_at)}

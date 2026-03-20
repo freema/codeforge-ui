@@ -40,10 +40,13 @@ export function connectToSessionStream(
 
   const connect = async () => {
     try {
-      const res = await fetch(`${serverUrl}/api/v1/sessions/${sessionId}/stream`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: controller.signal,
-      });
+      const res = await fetch(
+        `${serverUrl}/api/v1/sessions/${sessionId}/stream`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        },
+      );
 
       if (!res.ok || !res.body) {
         handlers.onError(new Error(`Stream error: ${res.status}`));
@@ -167,9 +170,7 @@ export function connectToWorkflowRunStream(
                   },
                 );
               } else if (msg.event === "done") {
-                handlers.onDone(
-                  parsed as unknown as { status: RunStatus },
-                );
+                handlers.onDone(parsed as unknown as { status: RunStatus });
               } else {
                 handlers.onEvent({
                   type: (parsed.type as StreamEvent["type"]) ?? "stream",
@@ -191,9 +192,7 @@ export function connectToWorkflowRunStream(
       }
     } catch (err) {
       if (controller.signal.aborted) return;
-      handlers.onError(
-        err instanceof Error ? err : new Error("Stream failed"),
-      );
+      handlers.onError(err instanceof Error ? err : new Error("Stream failed"));
     }
   };
 

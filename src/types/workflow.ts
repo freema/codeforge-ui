@@ -1,4 +1,9 @@
-export type RunStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+export type RunStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export type StepStatus =
   | "pending"

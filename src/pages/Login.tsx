@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type FormEvent,
+} from "react";
 import { useNavigate } from "react-router";
 import { Loader2, Sun, Moon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";

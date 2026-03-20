@@ -49,7 +49,9 @@ export function useSessionStream(sessionId: string | undefined) {
           sessionStatus: data.status,
         }));
         // Invalidate session query so UI gets fresh data (review_result, status, etc.)
-        void queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["session", sessionId],
+        });
       },
       onError: (err) => {
         setState((prev) => ({
@@ -61,7 +63,7 @@ export function useSessionStream(sessionId: string | undefined) {
     });
 
     controllerRef.current = controller;
-  }, [sessionId, serverUrl, token]);
+  }, [sessionId, serverUrl, token, queryClient]);
 
   useEffect(() => {
     connect();

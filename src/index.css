@@ -72,36 +72,77 @@
 }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--th-scrollbar); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--th-scrollbar-hover); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--th-scrollbar);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--th-scrollbar-hover);
+}
 
 /* ─── Animations ─── */
 @keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px #00ff4120, 0 0 20px #00ff4108; }
-  50% { box-shadow: 0 0 12px #00ff4130, 0 0 30px #00ff4110; }
+  0%,
+  100% {
+    box-shadow:
+      0 0 8px #00ff4120,
+      0 0 20px #00ff4108;
+  }
+  50% {
+    box-shadow:
+      0 0 12px #00ff4130,
+      0 0 30px #00ff4110;
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-scanline { animation: scanline 8s linear infinite; }
-.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
-.animate-blink { animation: blink 1.2s step-end infinite; }
-.animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+.animate-blink {
+  animation: blink 1.2s step-end infinite;
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out both;
+}
 
 /* ─── Theme-aware glow utilities ─── */
 .glow-border {
@@ -109,7 +150,9 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .dark .glow-border {
-  box-shadow: 0 0 10px #00ff4110, inset 0 0 10px #00ff4105;
+  box-shadow:
+    0 0 10px #00ff4110,
+    inset 0 0 10px #00ff4105;
 }
 
 .glow-border-strong {
@@ -118,21 +161,28 @@
 }
 .dark .glow-border-strong {
   border-color: #00ff4140;
-  box-shadow: 0 0 15px #00ff4118, inset 0 0 15px #00ff4108;
+  box-shadow:
+    0 0 15px #00ff4118,
+    inset 0 0 15px #00ff4108;
 }
 
 .text-glow {
   /* no glow in light mode */
 }
 .dark .text-glow {
-  text-shadow: 0 0 10px #00ff4160, 0 0 30px #00ff4120;
+  text-shadow:
+    0 0 10px #00ff4160,
+    0 0 30px #00ff4120;
 }
 
 .text-glow-strong {
   /* no glow in light mode */
 }
 .dark .text-glow-strong {
-  text-shadow: 0 0 8px #00ff4180, 0 0 20px #00ff4140, 0 0 40px #00ff4120;
+  text-shadow:
+    0 0 8px #00ff4180,
+    0 0 20px #00ff4140,
+    0 0 40px #00ff4120;
 }
 
 /* ─── Login page: CRT scanline overlay ─── */
@@ -150,30 +200,48 @@
 /* ─── Login page: Cyber card clip-path ─── */
 .cyber-card {
   clip-path: polygon(
-    20px 0, 100% 0,
-    100% calc(100% - 20px), calc(100% - 20px) 100%,
-    0 100%, 0 20px
+    20px 0,
+    100% 0,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    0 100%,
+    0 20px
   );
 }
 
 /* ─── Login page: Neon effects ─── */
 .neon-text {
-  text-shadow: 0 0 10px rgba(0, 255, 64, 0.7), 0 0 20px rgba(0, 255, 64, 0.5);
+  text-shadow:
+    0 0 10px rgba(0, 255, 64, 0.7),
+    0 0 20px rgba(0, 255, 64, 0.5);
 }
 
 .neon-border {
-  box-shadow: 0 0 15px rgba(0, 255, 64, 0.3), inset 0 0 15px rgba(0, 255, 64, 0.1);
+  box-shadow:
+    0 0 15px rgba(0, 255, 64, 0.3),
+    inset 0 0 15px rgba(0, 255, 64, 0.1);
 }
 
 @keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
-.animate-cursor-blink { animation: cursor-blink 1s step-end infinite; }
+.animate-cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
 
 @keyframes shimmer {
-  0% { transform: translateX(-200%) skewX(-12deg); }
-  100% { transform: translateX(400%) skewX(-12deg); }
+  0% {
+    transform: translateX(-200%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(400%) skewX(-12deg);
+  }
 }
 
 /* ─── Grid pattern background ─── */

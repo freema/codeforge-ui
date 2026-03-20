@@ -12,11 +12,41 @@ const runStatusConfig: Record<
   RunStatus,
   { color: string; bg: string; border: string; label: string; icon: string }
 > = {
-  pending: { color: "text-fg-3", bg: "bg-surface", border: "border-edge", label: "PENDING", icon: "schedule" },
-  running: { color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-500/20", label: "RUNNING", icon: "play_arrow" },
-  completed: { color: "text-accent", bg: "bg-accent/10", border: "border-accent/20", label: "COMPLETED", icon: "check_circle" },
-  failed: { color: "text-red-400", bg: "bg-red-400/10", border: "border-red-500/20", label: "FAILED", icon: "error" },
-  cancelled: { color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-500/20", label: "CANCELLED", icon: "cancel" },
+  pending: {
+    color: "text-fg-3",
+    bg: "bg-surface",
+    border: "border-edge",
+    label: "PENDING",
+    icon: "schedule",
+  },
+  running: {
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
+    border: "border-yellow-500/20",
+    label: "RUNNING",
+    icon: "play_arrow",
+  },
+  completed: {
+    color: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/20",
+    label: "COMPLETED",
+    icon: "check_circle",
+  },
+  failed: {
+    color: "text-red-400",
+    bg: "bg-red-400/10",
+    border: "border-red-500/20",
+    label: "FAILED",
+    icon: "error",
+  },
+  cancelled: {
+    color: "text-orange-400",
+    bg: "bg-orange-400/10",
+    border: "border-orange-500/20",
+    label: "CANCELLED",
+    icon: "cancel",
+  },
 };
 
 const stepStatusConfig: Record<
@@ -24,7 +54,12 @@ const stepStatusConfig: Record<
   { color: string; bg: string; icon: string; animated?: boolean }
 > = {
   pending: { color: "text-fg-3", bg: "bg-surface", icon: "schedule" },
-  running: { color: "text-yellow-400", bg: "bg-yellow-400/10", icon: "play_arrow", animated: true },
+  running: {
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
+    icon: "play_arrow",
+    animated: true,
+  },
   completed: { color: "text-accent", bg: "bg-accent/10", icon: "check_circle" },
   failed: { color: "text-red-400", bg: "bg-red-400/10", icon: "error" },
   skipped: { color: "text-fg-4", bg: "bg-surface", icon: "skip_next" },
@@ -64,7 +99,9 @@ export default function WorkflowRunDetail() {
             <h1 className="text-2xl font-bold text-fg">
               Run {run.id.slice(0, 8)}
             </h1>
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-bold uppercase tracking-wider ${sc.bg} ${sc.color} ${sc.border}`}>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-bold uppercase tracking-wider ${sc.bg} ${sc.color} ${sc.border}`}
+            >
               {run.status === "running" && (
                 <span className="size-1.5 animate-pulse rounded-full bg-current" />
               )}
@@ -86,13 +123,16 @@ export default function WorkflowRunDetail() {
             onClick={() => {
               cancelRun.mutate(run.id, {
                 onSuccess: () => toast("success", "Run cancellation requested"),
-                onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                onError: (err) =>
+                  toast("error", `Cancel failed: ${err.message}`),
               });
             }}
             disabled={cancelRun.isPending}
             className="flex items-center gap-2 rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-lg">stop_circle</span>
+            <span className="material-symbols-outlined text-lg">
+              stop_circle
+            </span>
             {cancelRun.isPending ? "Cancelling..." : "Cancel Run"}
           </button>
         )}
@@ -102,7 +142,9 @@ export default function WorkflowRunDetail() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-edge bg-surface-alt p-4">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
-            <span className="material-symbols-outlined text-accent text-base">schedule</span>
+            <span className="material-symbols-outlined text-accent text-base">
+              schedule
+            </span>
             Timing
           </h3>
           <div className="space-y-1 text-sm text-fg-3">
@@ -128,7 +170,9 @@ export default function WorkflowRunDetail() {
         {run.params && Object.keys(run.params).length > 0 && (
           <div className="rounded-xl border border-edge bg-surface-alt p-4">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
-              <span className="material-symbols-outlined text-accent text-base">tune</span>
+              <span className="material-symbols-outlined text-accent text-base">
+                tune
+              </span>
               Parameters
             </h3>
             <div className="space-y-1 text-sm">
@@ -149,7 +193,9 @@ export default function WorkflowRunDetail() {
         <div className="rounded-xl border border-edge bg-surface-alt overflow-hidden">
           <div className="flex items-center justify-between border-b border-edge bg-surface/70 px-6 py-4">
             <h3 className="flex items-center gap-2 font-bold text-fg">
-              <span className="material-symbols-outlined text-sm text-accent">schema</span>
+              <span className="material-symbols-outlined text-sm text-accent">
+                schema
+              </span>
               Steps
             </h3>
           </div>
@@ -162,13 +208,18 @@ export default function WorkflowRunDetail() {
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-alt font-mono text-sm font-bold text-accent/60">
                       {i + 1}
                     </span>
-                    <span className={`material-symbols-outlined ${cfg.color} ${cfg.animated ? "animate-spin" : ""}`}>
+                    <span
+                      className={`material-symbols-outlined ${cfg.color} ${cfg.animated ? "animate-spin" : ""}`}
+                    >
                       {cfg.icon}
                     </span>
                     <span className="text-sm font-medium text-fg">
                       {step.step_name}
                     </span>
-                    <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${cfg.bg} ${cfg.color}`} style={{ borderColor: "currentColor", opacity: 0.7 }}>
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${cfg.bg} ${cfg.color}`}
+                      style={{ borderColor: "currentColor", opacity: 0.7 }}
+                    >
                       {step.status}
                     </span>
                     {step.session_id && (
@@ -176,7 +227,9 @@ export default function WorkflowRunDetail() {
                         to={`/sessions/${step.session_id}`}
                         className="ml-auto flex items-center gap-1 text-xs text-accent transition-colors hover:underline"
                       >
-                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                        <span className="material-symbols-outlined text-sm">
+                          open_in_new
+                        </span>
                         Session {step.session_id.slice(0, 8)}
                       </Link>
                     )}
@@ -230,4 +283,3 @@ export default function WorkflowRunDetail() {
     </div>
   );
 }
-

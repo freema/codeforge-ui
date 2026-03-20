@@ -3,18 +3,40 @@ import { useNavigate, Link } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useWorkflows } from "../hooks/useWorkflows";
 import { useWorkflowRuns } from "../hooks/useWorkflowRuns";
-import { useCancelWorkflowRun, useCancelAllWorkflowRuns } from "../hooks/useWorkflowMutations";
+import {
+  useCancelWorkflowRun,
+  useCancelAllWorkflowRuns,
+} from "../hooks/useWorkflowMutations";
 import { useToast } from "../context/ToastContext";
 import type { WorkflowRun, RunStatus } from "../types";
 
 type Tab = "workflows" | "runs";
 
-const runStatusColors: Record<RunStatus, { color: string; bg: string; border: string }> = {
+const runStatusColors: Record<
+  RunStatus,
+  { color: string; bg: string; border: string }
+> = {
   pending: { color: "text-fg-3", bg: "bg-surface", border: "border-edge" },
-  running: { color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-500/20" },
-  completed: { color: "text-accent", bg: "bg-accent/10", border: "border-accent/20" },
-  failed: { color: "text-red-400", bg: "bg-red-400/10", border: "border-red-500/20" },
-  cancelled: { color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-500/20" },
+  running: {
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
+    border: "border-yellow-500/20",
+  },
+  completed: {
+    color: "text-accent",
+    bg: "bg-accent/10",
+    border: "border-accent/20",
+  },
+  failed: {
+    color: "text-red-400",
+    bg: "bg-red-400/10",
+    border: "border-red-500/20",
+  },
+  cancelled: {
+    color: "text-orange-400",
+    bg: "bg-orange-400/10",
+    border: "border-orange-500/20",
+  },
 };
 
 const stepTypeIcons: Record<string, string> = {
@@ -34,8 +56,16 @@ export default function WorkflowList() {
   usePageTitle("Workflows");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: workflows = [], isLoading: wfLoading, refetch: refetchWf } = useWorkflows();
-  const { data: runs = [], isLoading: runsLoading, refetch: refetchRuns } = useWorkflowRuns();
+  const {
+    data: workflows = [],
+    isLoading: wfLoading,
+    refetch: refetchWf,
+  } = useWorkflows();
+  const {
+    data: runs = [],
+    isLoading: runsLoading,
+    refetch: refetchRuns,
+  } = useWorkflowRuns();
   const cancelRun = useCancelWorkflowRun();
   const cancelAll = useCancelAllWorkflowRuns();
   const [tab, setTab] = useState<Tab>("workflows");
@@ -73,7 +103,9 @@ export default function WorkflowList() {
     );
   }, [runs, search]);
 
-  const activeRuns = runs.filter((r) => r.status === "pending" || r.status === "running");
+  const activeRuns = runs.filter(
+    (r) => r.status === "pending" || r.status === "running",
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -93,13 +125,16 @@ export default function WorkflowList() {
               onClick={() => {
                 cancelAll.mutate(undefined, {
                   onSuccess: (data) => toast("success", data.message),
-                  onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                  onError: (err) =>
+                    toast("error", `Cancel failed: ${err.message}`),
                 });
               }}
               disabled={cancelAll.isPending}
               className="flex h-10 items-center gap-1.5 rounded-lg border border-red-900/50 bg-red-900/20 px-4 text-sm font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-lg">stop_circle</span>
+              <span className="material-symbols-outlined text-lg">
+                stop_circle
+              </span>
               {cancelAll.isPending ? "Cancelling..." : "Cancel All"}
             </button>
           )}
@@ -119,13 +154,25 @@ export default function WorkflowList() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg border border-edge bg-surface p-1">
-        {([
-          { key: "workflows" as const, label: "Workflows", icon: "account_tree" },
-          { key: "runs" as const, label: "Runs", icon: "history", count: activeRuns.length },
-        ]).map((t) => (
+        {[
+          {
+            key: "workflows" as const,
+            label: "Workflows",
+            icon: "account_tree",
+          },
+          {
+            key: "runs" as const,
+            label: "Runs",
+            icon: "history",
+            count: activeRuns.length,
+          },
+        ].map((t) => (
           <button
             key={t.key}
-            onClick={() => { setTab(t.key); setSearch(""); }}
+            onClick={() => {
+              setTab(t.key);
+              setSearch("");
+            }}
             className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
               tab === t.key
                 ? "bg-accent/15 text-accent border border-accent/30"
@@ -150,7 +197,9 @@ export default function WorkflowList() {
         </div>
         <input
           type="text"
-          placeholder={tab === "workflows" ? "> Search workflows..." : "> Search runs..."}
+          placeholder={
+            tab === "workflows" ? "> Search workflows..." : "> Search runs..."
+          }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-12 w-full rounded-lg border border-edge bg-surface-alt pl-10 pr-4 font-mono text-sm text-fg placeholder-fg-4 transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
@@ -181,10 +230,18 @@ export default function WorkflowList() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-edge bg-surface text-left">
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Workflow</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Steps</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Params</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4 text-right">Type</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Workflow
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Steps
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Params
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4 text-right">
+                      Type
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-edge">
@@ -193,7 +250,11 @@ export default function WorkflowList() {
                     return (
                       <tr
                         key={wf.name}
-                        onClick={() => void navigate(`/workflows/${encodeURIComponent(wf.name)}`)}
+                        onClick={() =>
+                          void navigate(
+                            `/workflows/${encodeURIComponent(wf.name)}`,
+                          )
+                        }
                         className="group cursor-pointer bg-surface-alt transition-colors hover:bg-accent/5"
                       >
                         <td className="px-4 py-4">
@@ -216,7 +277,11 @@ export default function WorkflowList() {
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-1">
                             {wf.steps.map((step, i) => (
-                              <span key={i} className="flex items-center gap-0.5" title={`${step.name} (${step.type})`}>
+                              <span
+                                key={i}
+                                className="flex items-center gap-0.5"
+                                title={`${step.name} (${step.type})`}
+                              >
                                 <span className="material-symbols-outlined text-sm text-fg-4">
                                   {stepTypeIcons[step.type] || "extension"}
                                 </span>
@@ -231,7 +296,8 @@ export default function WorkflowList() {
                         </td>
                         <td className="px-4 py-4">
                           <span className="font-mono text-xs text-fg-4">
-                            {wf.parameters.filter((p) => p.required).length} required
+                            {wf.parameters.filter((p) => p.required).length}{" "}
+                            required
                           </span>
                         </td>
                         <td className="px-4 py-4 text-right">
@@ -276,11 +342,21 @@ export default function WorkflowList() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-edge bg-surface text-left">
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Run ID</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Status</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Workflow</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">Error</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4 text-right">Time</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Run ID
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Workflow
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
+                      Error
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4 text-right">
+                      Time
+                    </th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -291,8 +367,10 @@ export default function WorkflowList() {
                       run={run}
                       onCancel={() => {
                         cancelRun.mutate(run.id, {
-                          onSuccess: () => toast("success", "Run cancellation requested"),
-                          onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                          onSuccess: () =>
+                            toast("success", "Run cancellation requested"),
+                          onError: (err) =>
+                            toast("error", `Cancel failed: ${err.message}`),
                         });
                       }}
                       cancelPending={cancelRun.isPending}
@@ -363,7 +441,10 @@ function RunRow({
       <td className="px-4 py-3">
         {isActive && (
           <button
-            onClick={(e) => { e.stopPropagation(); onCancel(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCancel();
+            }}
             disabled={cancelPending}
             className="flex items-center rounded border border-red-900/50 bg-red-900/20 p-1.5 text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
             title="Cancel run"
@@ -377,9 +458,7 @@ function RunRow({
 }
 
 function formatTimeAgo(dateStr: string): string {
-  const seconds = Math.floor(
-    (Date.now() - new Date(dateStr).getTime()) / 1000,
-  );
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;

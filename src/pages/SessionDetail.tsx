@@ -13,7 +13,10 @@ import StatusBadge from "../components/StatusBadge";
 import MarkdownText from "../components/MarkdownText";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useToast } from "../context/ToastContext";
-import { PromptCard, IterationsHistory } from "../components/session/PromptCard";
+import {
+  PromptCard,
+  IterationsHistory,
+} from "../components/session/PromptCard";
 import { StreamEvents } from "../components/session/StreamEvents";
 import { ReviewResultCard } from "../components/session/ReviewResultCard";
 import { formatDuration, formatChangesSummary } from "../lib/formatters";
@@ -63,22 +66,25 @@ export default function SessionDetail() {
   }
 
   if (!session) {
-    return (
-      <p className="py-20 text-center text-fg-4">Session not found.</p>
-    );
+    return <p className="py-20 text-center text-fg-4">Session not found.</p>;
   }
 
   const isActive = ACTIVE_STATUSES.includes(session.status);
   const isPlan = session.session_type === "plan";
-  const canCancel = session.status === "running" || session.status === "cloning" || session.status === "reviewing";
+  const canCancel =
+    session.status === "running" ||
+    session.status === "cloning" ||
+    session.status === "reviewing";
   const canInstruct =
     session.status === "completed" || session.status === "awaiting_instruction";
-  const canCreatePR = session.status === "completed" && !session.pr_url && !isPlan;
+  const canCreatePR =
+    session.status === "completed" && !session.pr_url && !isPlan;
   const canReview = session.status === "completed" && !isPlan;
-  const hasChanges = session.changes_summary &&
+  const hasChanges =
+    session.changes_summary &&
     (session.changes_summary.files_modified > 0 ||
-     session.changes_summary.files_created > 0 ||
-     session.changes_summary.files_deleted > 0);
+      session.changes_summary.files_created > 0 ||
+      session.changes_summary.files_deleted > 0);
 
   const repoShort = session.repo_url
     .replace(/^https?:\/\//, "")
@@ -101,7 +107,10 @@ export default function SessionDetail() {
       setInstructPrompt("");
       stream.reconnect();
     } catch (err) {
-      toast("error", err instanceof Error ? err.message : "Failed to send instruction");
+      toast(
+        "error",
+        err instanceof Error ? err.message : "Failed to send instruction",
+      );
     }
   }
 
@@ -165,7 +174,9 @@ export default function SessionDetail() {
         <div className="flex items-center gap-4 font-mono text-xs text-fg-3">
           <span title="Tokens">
             <span className="text-fg-4">tok</span>{" "}
-            <span className="text-fg">{totalTokens > 0 ? totalTokens.toLocaleString() : "\u2014"}</span>
+            <span className="text-fg">
+              {totalTokens > 0 ? totalTokens.toLocaleString() : "\u2014"}
+            </span>
           </span>
           <span title="Iteration">
             <span className="text-fg-4">iter</span>{" "}
@@ -173,13 +184,20 @@ export default function SessionDetail() {
           </span>
           <span title="Duration">
             <span className="text-fg-4">dur</span>{" "}
-            <span className="text-fg">{session.usage ? formatDuration(session.usage.duration_seconds) : "\u2014"}</span>
+            <span className="text-fg">
+              {session.usage
+                ? formatDuration(session.usage.duration_seconds)
+                : "\u2014"}
+            </span>
           </span>
           {hasChanges && (
             <span title="Changes" className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-cyan-400">difference</span>
+              <span className="material-symbols-outlined text-sm text-cyan-400">
+                difference
+              </span>
               <span className="text-fg">
-                {session.changes_summary!.diff_stats || formatChangesSummary(session.changes_summary!)}
+                {session.changes_summary!.diff_stats ||
+                  formatChangesSummary(session.changes_summary!)}
               </span>
             </span>
           )}
@@ -190,7 +208,9 @@ export default function SessionDetail() {
               title="Workflow run"
               onClick={(e) => e.stopPropagation()}
             >
-              <span className="material-symbols-outlined text-sm">account_tree</span>
+              <span className="material-symbols-outlined text-sm">
+                account_tree
+              </span>
               Workflow
             </Link>
           )}
@@ -202,7 +222,9 @@ export default function SessionDetail() {
               title="Pull Request"
               onClick={(e) => e.stopPropagation()}
             >
-              <span className="material-symbols-outlined text-sm">call_merge</span>
+              <span className="material-symbols-outlined text-sm">
+                call_merge
+              </span>
               PR{session.pr_number ? ` #${session.pr_number}` : ""}
             </Link>
           )}
@@ -213,11 +235,15 @@ export default function SessionDetail() {
           {isActive && (
             <div className="flex items-center gap-1.5">
               <div className="size-2 animate-pulse rounded-full bg-accent" />
-              <span className="font-mono text-xs uppercase tracking-widest text-accent">Live</span>
+              <span className="font-mono text-xs uppercase tracking-widest text-accent">
+                Live
+              </span>
             </div>
           )}
           {!isActive && stream.events.length > 0 && (
-            <span className="font-mono text-xs text-fg-4">{stream.events.length} events</span>
+            <span className="font-mono text-xs text-fg-4">
+              {stream.events.length} events
+            </span>
           )}
           {stream.error && (
             <button
@@ -233,13 +259,20 @@ export default function SessionDetail() {
       {/* Error banner */}
       {session.error && (
         <div className="flex items-center gap-2 border-b border-red-900/30 bg-red-900/10 px-6 py-2">
-          <span className="material-symbols-outlined text-sm text-red-400">error</span>
-          <span className="font-mono text-xs text-red-300">{session.error}</span>
+          <span className="material-symbols-outlined text-sm text-red-400">
+            error
+          </span>
+          <span className="font-mono text-xs text-red-300">
+            {session.error}
+          </span>
         </div>
       )}
 
       {/* Terminal — full width */}
-      <div ref={terminalRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 text-sm">
+      <div
+        ref={terminalRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-4 text-sm"
+      >
         {/* Prompt card — always first */}
         <PromptCard prompt={session.prompt} ts={session.created_at} />
 
@@ -259,7 +292,10 @@ export default function SessionDetail() {
             <StreamEvents events={stream.events} isActive={isActive} />
             {isActive && (
               <div className="mt-3 flex items-center gap-2 px-2 text-accent/50">
-                <span className="inline-block w-2 animate-pulse bg-accent/60" style={{ height: "14px" }} />
+                <span
+                  className="inline-block w-2 animate-pulse bg-accent/60"
+                  style={{ height: "14px" }}
+                />
                 <span className="text-xs italic">Agent working...</span>
               </div>
             )}
@@ -274,15 +310,20 @@ export default function SessionDetail() {
                 <ReviewResultCard review={session.review_result} />
               </div>
             )}
-            {session.result && !stream.events.some((e) => e.type === "result") && (
-              <div className="mt-3 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-sm text-accent">check_circle</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-accent">Result</span>
+            {session.result &&
+              !stream.events.some((e) => e.type === "result") && (
+                <div className="mt-3 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="material-symbols-outlined text-sm text-accent">
+                      check_circle
+                    </span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-accent">
+                      Result
+                    </span>
+                  </div>
+                  <MarkdownText text={session.result} className="text-xs" />
                 </div>
-                <MarkdownText text={session.result} className="text-xs" />
-              </div>
-            )}
+              )}
           </>
         )}
       </div>
@@ -321,7 +362,9 @@ export default function SessionDetail() {
               {createPR.isPending ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-sm">call_merge</span>
+                <span className="material-symbols-outlined text-sm">
+                  call_merge
+                </span>
               )}
               {createPR.isPending ? "Creating..." : "Create"}
             </button>
@@ -357,7 +400,9 @@ export default function SessionDetail() {
               {instructSession.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-base">arrow_upward</span>
+                <span className="material-symbols-outlined text-base">
+                  arrow_upward
+                </span>
               )}
             </button>
           </div>
@@ -372,7 +417,9 @@ export default function SessionDetail() {
                 disabled={cancelSession.isPending}
                 className="flex items-center gap-1 text-xs text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-sm">cancel</span>
+                <span className="material-symbols-outlined text-sm">
+                  cancel
+                </span>
                 Cancel
               </button>
             )}
@@ -385,7 +432,9 @@ export default function SessionDetail() {
                 {reviewSession.isPending ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <span className="material-symbols-outlined text-sm">rate_review</span>
+                  <span className="material-symbols-outlined text-sm">
+                    rate_review
+                  </span>
                 )}
                 {reviewSession.isPending ? "Reviewing..." : "Review"}
               </button>
@@ -395,7 +444,9 @@ export default function SessionDetail() {
                 onClick={() => setShowPR(true)}
                 className="flex items-center gap-1 text-xs text-fg-3 transition-colors hover:text-accent"
               >
-                <span className="material-symbols-outlined text-sm">call_merge</span>
+                <span className="material-symbols-outlined text-sm">
+                  call_merge
+                </span>
                 Create PR
               </button>
             )}
@@ -405,7 +456,9 @@ export default function SessionDetail() {
                 target="_blank"
                 className="flex items-center gap-1 text-xs text-teal-500 transition-colors hover:text-teal-400"
               >
-                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                <span className="material-symbols-outlined text-sm">
+                  open_in_new
+                </span>
                 View PR
               </Link>
             )}

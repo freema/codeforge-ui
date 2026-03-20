@@ -17,15 +17,32 @@ const PIE_COLORS: Record<string, string> = {
   cancelling: "#f97316",
 };
 
+const ACTIVE_STATUSES = new Set([
+  "pending",
+  "cloning",
+  "running",
+  "reviewing",
+  "creating_pr",
+  "cancelling",
+]);
+
 export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
   const { data: sessions } = useSessions();
 
-  const ACTIVE_STATUSES = new Set(["pending", "cloning", "running", "reviewing", "creating_pr", "cancelling"]);
-  const running = useMemo(() => sessions?.filter((t) => ACTIVE_STATUSES.has(t.status)).length ?? 0, [sessions]);
-  const completed = useMemo(() => sessions?.filter((t) => t.status === "completed").length ?? 0, [sessions]);
-  const failed = useMemo(() => sessions?.filter((t) => t.status === "failed").length ?? 0, [sessions]);
+  const running = useMemo(
+    () => sessions?.filter((t) => ACTIVE_STATUSES.has(t.status)).length ?? 0,
+    [sessions],
+  );
+  const completed = useMemo(
+    () => sessions?.filter((t) => t.status === "completed").length ?? 0,
+    [sessions],
+  );
+  const failed = useMemo(
+    () => sessions?.filter((t) => t.status === "failed").length ?? 0,
+    [sessions],
+  );
   const total = sessions?.length ?? 0;
 
   const sessionsByStatus = useMemo(() => {
@@ -42,7 +59,10 @@ export default function Dashboard() {
   const recentSessions = useMemo(() => {
     if (!sessions) return [];
     return [...sessions]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
       .slice(0, 8);
   }, [sessions]);
 
@@ -130,7 +150,9 @@ export default function Dashboard() {
               className="flex items-center gap-1 text-xs font-medium text-accent/70 transition-colors hover:text-accent"
             >
               View all
-              <span className="material-symbols-outlined text-sm">chevron_right</span>
+              <span className="material-symbols-outlined text-sm">
+                chevron_right
+              </span>
             </Link>
           </div>
           <div className="flex-1">
@@ -205,8 +227,7 @@ export default function Dashboard() {
                         <div
                           className="h-3 w-3 rounded-sm"
                           style={{
-                            backgroundColor:
-                              PIE_COLORS[s.name] || "#6b7280",
+                            backgroundColor: PIE_COLORS[s.name] || "#6b7280",
                             boxShadow:
                               s.name === "completed"
                                 ? "0 0 5px rgba(0,255,64,0.5)"

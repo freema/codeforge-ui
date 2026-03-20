@@ -16,7 +16,8 @@ export function useCancelSession() {
 
   return useMutation({
     mutationFn: (id: string) => api.cancelSession(id),
-    onSuccess: (_data, id) => qc.invalidateQueries({ queryKey: ["session", id] }),
+    onSuccess: (_data, id) =>
+      qc.invalidateQueries({ queryKey: ["session", id] }),
   });
 }
 
