@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useKeys } from "../hooks/useKeys";
 import { useRepositories } from "../hooks/useRepositories";
@@ -6,28 +6,30 @@ import {
   useSentryOrganizations,
   useSentryProjects,
   useSentryIssues,
-  useFixSentryIssue,
 } from "../hooks/useSentry";
-import { useWorkflowRunStream } from "../hooks/useWorkflowRuns";
+import { useRunWorkflow } from "../hooks/useWorkflowMutations";
 import Select from "./Select";
-import type { SentryConfig, SentryIssue } from "../types";
-
-const STORAGE_KEY = "sentry-config";
+import type { SentryConfig } from "../types";
 
 function loadConfig(): SentryConfig | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const cfg = JSON.parse(raw) as SentryConfig;
-    if (cfg.key_name && cfg.org_slug && cfg.project_slug && cfg.repo_url) return cfg;
+    const raw = localStorage.getItem("sentry-configs");
+    if (raw) {
+      const configs = JSON.parse(raw) as SentryConfig[];
+      const activeIdx = parseInt(localStorage.getItem("sentry-active-config") ?? "0", 10) || 0;
+      const cfg = configs[activeIdx] ?? configs[0];
+      if (cfg?.key_name && cfg.org_slug && cfg.project_slug && cfg.repo_url) return cfg;
+    }
+    const oldRaw = localStorage.getItem("sentry-config");
+    if (oldRaw) {
+      const cfg = JSON.parse(oldRaw) as SentryConfig;
+      if (cfg.key_name && cfg.org_slug && cfg.project_slug && cfg.repo_url) return cfg;
+    }
     return null;
   } catch {
     return null;
   }
 }
-
-type FixMode = "single" | "batch" | "all";
-type IssueSort = "freq" | "date" | "new" | "priority";
 
 const LEVEL_COLORS: Record<string, string> = {
   fatal: "bg-red-500",
@@ -40,6 +42,7 @@ export default function SentryFixerRunForm() {
   const navigate = useNavigate();
   const { data: allKeys } = useKeys();
   const config = loadConfig();
+  const runWorkflow = useRunWorkflow();
 
   // ── Sentry key ──
   const sentryKeys = useMemo(
@@ -49,16 +52,18 @@ export default function SentryFixerRunForm() {
   const [sentryKey, setSentryKey] = useState(config?.key_name ?? "");
   const effectiveKey = sentryKey || (sentryKeys.length === 1 ? sentryKeys[0]!.name : "");
 
-  // ── Organizations (fetched from API) ──
+  // ── Organizations ──
   const { data: orgs, isLoading: orgsLoading } = useSentryOrganizations(effectiveKey || undefined);
   const [orgSlug, setOrgSlug] = useState(config?.org_slug ?? "");
-  // Auto-select if only one org
+  const [orgRegion, setOrgRegion] = useState("");
   const effectiveOrg = orgSlug || (orgs?.length === 1 ? orgs[0]!.slug : "");
+  const effectiveRegion = orgRegion || (orgs?.length === 1 ? orgs[0]!.region : "");
 
-  // ── Projects (fetched once org is picked) ──
+  // ── Projects ──
   const { data: sentryProjects, isLoading: projectsLoading } = useSentryProjects(
     effectiveKey || undefined,
     effectiveOrg || undefined,
+    effectiveRegion || undefined,
   );
   const [projectSlug, setProjectSlug] = useState(config?.project_slug ?? "");
 
@@ -72,111 +77,38 @@ export default function SentryFixerRunForm() {
   const { data: repos, isLoading: reposLoading } = useRepositories(effectiveGitKey || undefined);
   const [repoUrl, setRepoUrl] = useState(config?.repo_url ?? "");
 
-  // ── Fix mode ──
-  const [fixMode, setFixMode] = useState<FixMode>("single");
-
-  // ── Issues ──
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<IssueSort>("freq");
-  const sortParam = sort === "freq" ? "freq" : sort === "new" ? "new" : sort === "priority" ? "priority" : "date";
-
+  // ── Issues preview (readonly) ──
   const { data: issues, isLoading: issuesLoading } = useSentryIssues(
     effectiveKey || undefined,
     effectiveOrg || undefined,
     projectSlug || undefined,
-    { query: search ? `is:unresolved ${search}` : "is:unresolved", sort: sortParam },
+    { query: "is:unresolved", sort: "freq", region: effectiveRegion || undefined },
   );
 
-  // ── Selection ──
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const toggleBatch = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  // ── Run logic ──
-  const fixIssue = useFixSentryIssue();
-  const [fixingIds, setFixingIds] = useState<Map<string, string>>(new Map());
-  const [isRunning, setIsRunning] = useState(false);
-
-  const configComplete = !!(effectiveKey && effectiveOrg && projectSlug && repoUrl);
-
-  const canRun =
-    configComplete &&
-    (fixMode === "all" ||
-      (fixMode === "single" && selectedId) ||
-      (fixMode === "batch" && selectedIds.size > 0));
-
-  function buildParams(issueId: string) {
-    return {
-      name: "sentry-fixer",
-      params: {
-        sentry_url: "https://sentry.io",
-        issue_id: issueId,
-        repo_url: repoUrl,
-        key_name: effectiveKey,
-        ...(effectiveGitKey ? { provider_key: effectiveGitKey } : {}),
-      },
-    };
-  }
+  const configComplete = !!(effectiveKey && effectiveOrg && projectSlug && repoUrl && effectiveGitKey);
 
   async function handleRun() {
-    if (!canRun) return;
-    setIsRunning(true);
-
-    try {
-      if (fixMode === "single" && selectedId) {
-        const run = await fixIssue.mutateAsync(buildParams(selectedId));
-        void navigate(`/workflows/runs/${run.id}`);
-        return;
-      }
-
-      const targets =
-        fixMode === "all"
-          ? (issues ?? [])
-          : (issues ?? []).filter((i) => selectedIds.has(i.id));
-
-      if (targets.length === 0) return;
-
-      if (targets.length === 1) {
-        const run = await fixIssue.mutateAsync(buildParams(targets[0]!.id));
-        void navigate(`/workflows/runs/${run.id}`);
-        return;
-      }
-
-      const newFixing = new Map<string, string>();
-      await Promise.all(
-        targets.map(async (issue) => {
-          try {
-            const run = await fixIssue.mutateAsync(buildParams(issue.id));
-            newFixing.set(issue.id, run.id);
-          } catch {
-            // skip failed
-          }
-        }),
-      );
-      setFixingIds(newFixing);
-    } finally {
-      setIsRunning(false);
-    }
+    if (!configComplete) return;
+    const run = await runWorkflow.mutateAsync({
+      name: "sentry-fixer",
+      params: {
+        sentry_org: effectiveOrg,
+        sentry_project: projectSlug,
+        repo_url: repoUrl,
+        key_name: effectiveKey,
+        provider_key: effectiveGitKey,
+      },
+    });
+    void navigate(`/workflows/runs/${run.id}`);
   }
 
-  // ── Cascade helpers ──
-  const showIssues = configComplete && fixMode !== "all";
-
-  // How far through the cascade are we?
+  // Cascade step
   const step =
     !effectiveKey ? 0
     : !effectiveOrg ? 1
     : !projectSlug ? 2
     : !repoUrl ? 3
-    : 4; // ready
+    : 4;
 
   return (
     <div className="rounded-xl border border-edge bg-surface/50 p-6 space-y-5">
@@ -200,6 +132,7 @@ export default function SentryFixerRunForm() {
               onChange={(v) => {
                 setSentryKey(v);
                 setOrgSlug("");
+                setOrgRegion("");
                 setProjectSlug("");
               }}
               placeholder="Select sentry key..."
@@ -214,7 +147,7 @@ export default function SentryFixerRunForm() {
         )}
       </div>
 
-      {/* ── Organization (dropdown from API) ── */}
+      {/* ── Organization ── */}
       {step >= 1 && (
         <div>
           <label className="mb-1.5 block text-xs font-medium text-fg-3">Organization</label>
@@ -234,12 +167,13 @@ export default function SentryFixerRunForm() {
               value={effectiveOrg}
               onChange={(v) => {
                 setOrgSlug(v);
+                setOrgRegion(orgs.find((o) => o.slug === v)?.region ?? "");
                 setProjectSlug("");
               }}
               placeholder="Select organization..."
               options={orgs.map((o) => ({
                 value: o.slug,
-                label: `${o.name} (${o.slug})`,
+                label: `${o.name} (${o.slug})${o.region !== "us" ? ` [${o.region.toUpperCase()}]` : ""}`,
               }))}
             />
           ) : (
@@ -248,7 +182,7 @@ export default function SentryFixerRunForm() {
         </div>
       )}
 
-      {/* ── Project (dropdown from API) ── */}
+      {/* ── Project ── */}
       {step >= 2 && (
         <div>
           <label className="mb-1.5 block text-xs font-medium text-fg-3">Project</label>
@@ -326,284 +260,68 @@ export default function SentryFixerRunForm() {
         </div>
       )}
 
-      {/* ── Fix Mode ── */}
+      {/* ── Issues Preview (readonly) ── */}
       {step >= 4 && (
         <>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-fg-3">Fix Mode</label>
-            <div className="flex gap-1 rounded-lg border border-edge bg-surface p-1">
-              {([
-                { key: "single" as const, label: "Single Issue", icon: "target" },
-                { key: "batch" as const, label: "Batch Fix", icon: "checklist" },
-                { key: "all" as const, label: "All Unresolved", icon: "select_all" },
-              ]).map((mode) => (
-                <button
-                  key={mode.key}
-                  type="button"
-                  onClick={() => {
-                    setFixMode(mode.key);
-                    setSelectedId(null);
-                    setSelectedIds(new Set());
-                  }}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-all ${
-                    fixMode === mode.key
-                      ? "bg-accent/15 text-accent border border-accent/30"
-                      : "text-fg-3 border border-transparent hover:text-fg-2"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-sm">{mode.icon}</span>
-                  {mode.label}
-                </button>
-              ))}
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-xs font-medium text-fg-3">Unresolved Issues</label>
+              {issues && (
+                <span className="font-mono text-[10px] text-fg-4">{issues.length} loaded</span>
+              )}
             </div>
+            {issuesLoading ? (
+              <div className="space-y-1.5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-9 animate-pulse rounded-lg bg-surface-alt" />
+                ))}
+              </div>
+            ) : issues && issues.length > 0 ? (
+              <div className="max-h-56 overflow-y-auto rounded-lg border border-edge divide-y divide-edge">
+                {issues.map((issue) => (
+                  <div
+                    key={issue.id}
+                    className="flex items-center gap-3 px-3 py-2"
+                  >
+                    <div className={`h-2 w-2 shrink-0 rounded-full ${LEVEL_COLORS[issue.level] ?? "bg-gray-500"}`} />
+                    <span className="shrink-0 font-mono text-[10px] text-fg-4">{issue.shortId}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-fg">{issue.title}</span>
+                    <span className="shrink-0 rounded border border-edge bg-surface px-1.5 py-0.5 font-mono text-[10px] text-fg-4">
+                      {issue.count}x
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 py-6 text-xs text-fg-4">
+                <span className="material-symbols-outlined text-base">check_circle</span>
+                No unresolved issues
+              </div>
+            )}
           </div>
 
-          {/* ── Issues Picker ── */}
-          {showIssues && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-4">search</span>
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search issues..."
-                    className="w-full rounded-lg border border-edge bg-surface py-2 pl-9 pr-3 text-xs text-fg font-mono placeholder-fg-4 focus:border-accent focus:outline-none"
-                  />
-                </div>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as IssueSort)}
-                  className="rounded-lg border border-edge bg-surface px-3 py-2 text-xs text-fg font-mono focus:border-accent focus:outline-none"
-                >
-                  <option value="freq">Frequency</option>
-                  <option value="date">Last Seen</option>
-                  <option value="new">First Seen</option>
-                  <option value="priority">Priority</option>
-                </select>
-              </div>
-
-              {issuesLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 animate-pulse rounded-lg bg-surface-alt" />
-                  ))}
-                </div>
-              ) : issues && issues.length > 0 ? (
-                <div className="max-h-72 overflow-y-auto rounded-lg border border-edge">
-                  {issues.map((issue) => (
-                    <IssuePickerRow
-                      key={issue.id}
-                      issue={issue}
-                      mode={fixMode}
-                      isSelected={
-                        fixMode === "single"
-                          ? selectedId === issue.id
-                          : selectedIds.has(issue.id)
-                      }
-                      onSelect={() => {
-                        if (fixMode === "single") {
-                          setSelectedId(selectedId === issue.id ? null : issue.id);
-                        } else {
-                          toggleBatch(issue.id);
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2 py-6 text-xs text-fg-4">
-                  <span className="material-symbols-outlined text-base">check_circle</span>
-                  No unresolved issues
-                </div>
-              )}
-
-              {fixMode === "batch" && selectedIds.size > 0 && (
-                <div className="flex items-center gap-2 text-xs text-accent">
-                  <span className="material-symbols-outlined text-sm">checklist</span>
-                  {selectedIds.size} issue{selectedIds.size !== 1 && "s"} selected
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* All Unresolved info */}
-          {fixMode === "all" && (
-            <div className="flex items-center gap-2 rounded-lg border border-yellow-500/20 bg-yellow-400/5 px-4 py-3 text-xs text-yellow-400">
-              <span className="material-symbols-outlined text-base">info</span>
-              Will create a fix run for every unresolved issue in {projectSlug}.
-              {issues && <span className="font-mono ml-1">({issues.length} loaded)</span>}
-            </div>
-          )}
-
           {/* ── Run Button ── */}
-          <button
-            onClick={() => void handleRun()}
-            disabled={!canRun || isRunning}
-            className="flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover disabled:opacity-50"
-          >
-            {isRunning ? (
-              <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-            ) : (
-              <span className="material-symbols-outlined text-lg">play_arrow</span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => void handleRun()}
+              disabled={!configComplete || runWorkflow.isPending || !issues?.length}
+              className="flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover disabled:opacity-50"
+            >
+              {runWorkflow.isPending ? (
+                <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">play_arrow</span>
+              )}
+              Fix All Issues
+            </button>
+            {issues && issues.length > 0 && (
+              <span className="text-xs text-fg-4">
+                Claude will analyze {issues.length} issue{issues.length !== 1 && "s"} and fix what it can
+              </span>
             )}
-            {fixMode === "single"
-              ? "Fix Issue"
-              : fixMode === "batch"
-                ? `Fix ${selectedIds.size} Issue${selectedIds.size !== 1 ? "s" : ""}`
-                : `Fix All (${issues?.length ?? 0})`}
-          </button>
-
-          {/* ── Batch Progress ── */}
-          {fixingIds.size > 0 && (
-            <BatchProgress fixingIds={fixingIds} issues={issues ?? []} />
-          )}
+          </div>
         </>
       )}
     </div>
-  );
-}
-
-// ─── Issue Picker Row ───────────────────────────────────
-
-function IssuePickerRow({
-  issue,
-  mode,
-  isSelected,
-  onSelect,
-}: {
-  issue: SentryIssue;
-  mode: FixMode;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`flex w-full items-center gap-3 border-b border-edge px-3 py-2.5 text-left transition-colors last:border-b-0 ${
-        isSelected ? "bg-accent/10" : "hover:bg-surface-alt/50"
-      }`}
-    >
-      {mode === "batch" ? (
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={onSelect}
-          onClick={(e) => e.stopPropagation()}
-          className="h-3.5 w-3.5 shrink-0 rounded border-edge accent-[#00ff40]"
-        />
-      ) : (
-        <div
-          className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors ${
-            isSelected ? "border-accent bg-accent" : "border-edge"
-          }`}
-        />
-      )}
-
-      <div className={`h-2 w-2 shrink-0 rounded-full ${LEVEL_COLORS[issue.level] ?? "bg-gray-500"}`} />
-
-      <span className="shrink-0 font-mono text-[10px] text-fg-4">{issue.shortId}</span>
-      <span className="min-w-0 flex-1 truncate text-xs text-fg">{issue.title}</span>
-      <span className="shrink-0 rounded border border-edge bg-surface px-1.5 py-0.5 font-mono text-[10px] text-fg-4">
-        {issue.count}x
-      </span>
-    </button>
-  );
-}
-
-// ─── Batch Progress ─────────────────────────────────────
-
-function BatchProgress({
-  fixingIds,
-  issues,
-}: {
-  fixingIds: Map<string, string>;
-  issues: SentryIssue[];
-}) {
-  const entries = Array.from(fixingIds.entries());
-
-  return (
-    <div className="rounded-lg border border-edge bg-surface-alt/50 p-4">
-      <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fg-2">
-        <span className="material-symbols-outlined text-accent text-sm">build</span>
-        Fixing {entries.length} issue{entries.length !== 1 && "s"}
-      </h4>
-      <div className="space-y-1.5">
-        {entries.map(([issueId, runId]) => {
-          const issue = issues.find((i) => i.id === issueId);
-          return (
-            <BatchProgressRow
-              key={issueId}
-              shortId={issue?.shortId ?? issueId.slice(0, 8)}
-              title={issue?.title ?? "Unknown"}
-              runId={runId}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function BatchProgressRow({
-  shortId,
-  title,
-  runId,
-}: {
-  shortId: string;
-  title: string;
-  runId: string;
-}) {
-  const stream = useWorkflowRunStream(runId);
-
-  const currentStep = useMemo(() => {
-    for (let i = stream.events.length - 1; i >= 0; i--) {
-      const ev = stream.events[i]!;
-      if (ev.event === "step_update") {
-        const data = ev.data as { step_name?: string };
-        return data.step_name;
-      }
-    }
-    return null;
-  }, [stream.events]);
-
-  const statusIcon =
-    stream.runStatus === "completed"
-      ? "check_circle"
-      : stream.runStatus === "failed"
-        ? "error"
-        : "progress_activity";
-
-  const statusColor =
-    stream.runStatus === "completed"
-      ? "text-accent"
-      : stream.runStatus === "failed"
-        ? "text-red-400"
-        : "text-yellow-400";
-
-  return (
-    <a
-      href={`/workflows/runs/${runId}`}
-      className="flex items-center gap-3 rounded-lg border border-edge bg-surface px-3 py-2 transition-colors hover:border-accent/30"
-    >
-      <span
-        className={`material-symbols-outlined text-base ${statusColor} ${
-          stream.runStatus !== "completed" && stream.runStatus !== "failed" ? "animate-spin" : ""
-        }`}
-      >
-        {statusIcon}
-      </span>
-      <span className="shrink-0 font-mono text-[10px] text-fg-4">{shortId}</span>
-      <span className="min-w-0 flex-1 truncate text-xs text-fg-2">{title}</span>
-      <span className="shrink-0 font-mono text-[10px] text-fg-4">
-        {stream.runStatus === "completed"
-          ? "done"
-          : stream.runStatus === "failed"
-            ? "failed"
-            : currentStep ?? "starting"}
-      </span>
-    </a>
   );
 }

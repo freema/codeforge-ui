@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { useTasks } from "../hooks/useTasks";
+import { useSessions } from "../hooks/useSessions";
 import StatusBadge from "../components/StatusBadge";
-import type { Task, TaskStatus } from "../types";
+import type { Session, SessionStatus } from "../types";
 
 const STATUS_FILTERS: {
   label: string;
-  value: TaskStatus | "all";
+  value: SessionStatus | "all";
   icon: string;
 }[] = [
   { label: "All", value: "all", icon: "list" },
@@ -19,22 +19,22 @@ const STATUS_FILTERS: {
   { label: "PR Created", value: "pr_created", icon: "call_merge" },
 ];
 
-export default function TaskList() {
-  usePageTitle("Tasks");
+export default function SessionList() {
+  usePageTitle("Sessions");
   const navigate = useNavigate();
-  const { data: tasks = [], isLoading, refetch } = useTasks();
+  const { data: sessions = [], isLoading, refetch } = useSessions();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<SessionStatus | "all">("all");
 
-  const sortedTasks = useMemo(() => {
-    return [...tasks].sort(
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
-  }, [tasks]);
+  }, [sessions]);
 
-  const filteredTasks = useMemo(() => {
-    return sortedTasks.filter((t) => {
+  const filteredSessions = useMemo(() => {
+    return sortedSessions.filter((t) => {
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -46,15 +46,15 @@ export default function TaskList() {
       }
       return true;
     });
-  }, [sortedTasks, statusFilter, search]);
+  }, [sortedSessions, statusFilter, search]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const t of tasks) {
+    for (const t of sessions) {
       counts[t.status] = (counts[t.status] || 0) + 1;
     }
     return counts;
-  }, [tasks]);
+  }, [sessions]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -62,7 +62,7 @@ export default function TaskList() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-fg">
-            Tasks
+            Sessions
           </h1>
           <p className="mt-1 text-sm text-fg-3">
             Manage and monitor your AI coding sessions
@@ -81,11 +81,11 @@ export default function TaskList() {
             Refresh
           </button>
           <button
-            onClick={() => void navigate("/tasks/new")}
+            onClick={() => void navigate("/sessions/new")}
             className="flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-colors hover:bg-accent-hover"
           >
             <span className="material-symbols-outlined text-xl">add</span>
-            New Task
+            New Session
           </button>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default function TaskList() {
         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
           {STATUS_FILTERS.map((f) => {
             const count =
-              f.value === "all" ? tasks.length : statusCounts[f.value] ?? 0;
+              f.value === "all" ? sessions.length : statusCounts[f.value] ?? 0;
             return (
               <button
                 key={f.value}
@@ -139,30 +139,30 @@ export default function TaskList() {
         </div>
       </div>
 
-      {/* Task list */}
-      {!isLoading && tasks.length === 0 ? (
-        <EmptyState onNew={() => void navigate("/tasks/new")} />
-      ) : filteredTasks.length === 0 ? (
+      {/* Session list */}
+      {!isLoading && sessions.length === 0 ? (
+        <EmptyState onNew={() => void navigate("/sessions/new")} />
+      ) : filteredSessions.length === 0 ? (
         <p className="py-12 text-center text-sm text-fg-2">
-          No tasks match your filters.
+          No sessions match your filters.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {filteredTasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              onClick={() => void navigate(`/tasks/${task.id}`)}
+          {filteredSessions.map((session) => (
+            <SessionRow
+              key={session.id}
+              session={session}
+              onClick={() => void navigate(`/sessions/${session.id}`)}
             />
           ))}
         </div>
       )}
 
       {/* Pagination info */}
-      {filteredTasks.length > 0 && (
+      {filteredSessions.length > 0 && (
         <div className="flex items-center justify-between border-t border-edge pt-6">
           <span className="text-sm text-fg-4">
-            Showing {filteredTasks.length} of {tasks.length} tasks
+            Showing {filteredSessions.length} of {sessions.length} sessions
           </span>
         </div>
       )}
@@ -170,13 +170,13 @@ export default function TaskList() {
   );
 }
 
-function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
-  const repoShort = task.repo_url
+function SessionRow({ session, onClick }: { session: Session; onClick: () => void }) {
+  const repoShort = session.repo_url
     .replace(/^https?:\/\//, "")
     .replace(/\.git$/, "");
 
-  const isRunning = task.status === "running" || task.status === "cloning";
-  const isFailed = task.status === "failed";
+  const isRunning = session.status === "running" || session.status === "cloning";
+  const isFailed = session.status === "failed";
 
   return (
     <button
@@ -195,7 +195,7 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
         <div className="absolute bottom-0 left-0 top-0 w-1 bg-red-500/50" />
       )}
 
-      {/* Task ID & timing */}
+      {/* Session ID & timing */}
       <div className="flex min-w-[140px] items-center gap-3 md:flex-col md:items-start md:gap-1">
         <div className="flex items-center gap-2">
           <span
@@ -204,7 +204,7 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
                 ? "animate-pulse text-accent"
                 : isFailed
                   ? "text-red-500"
-                  : task.status === "completed"
+                  : session.status === "completed"
                     ? "text-fg-3"
                     : "text-yellow-500"
             }`}
@@ -213,7 +213,7 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
               ? "terminal"
               : isFailed
                 ? "error"
-                : task.status === "completed"
+                : session.status === "completed"
                   ? "check_circle"
                   : "pending"}
           </span>
@@ -223,16 +223,16 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
                 ? "text-accent"
                 : isFailed
                   ? "text-red-400"
-                  : task.status === "completed"
+                  : session.status === "completed"
                     ? "text-fg-3"
                     : "text-fg"
             }`}
           >
-            {task.id.slice(0, 8).toUpperCase()}
+            {session.id.slice(0, 8).toUpperCase()}
           </span>
         </div>
         <span className="font-mono text-xs text-fg-4">
-          {formatTimeAgo(task.created_at)}
+          {formatTimeAgo(session.created_at)}
         </span>
       </div>
 
@@ -246,38 +246,46 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
         </div>
         <p
           className={`text-sm font-medium ${
-            task.status === "completed"
+            session.status === "completed"
               ? "text-fg-3"
               : "text-fg"
           }`}
         >
-          {task.prompt.length > 150
-            ? task.prompt.slice(0, 150) + "..."
-            : task.prompt}
+          {session.prompt.length > 150
+            ? session.prompt.slice(0, 150) + "..."
+            : session.prompt}
         </p>
-        {task.error && (
+        {session.error && (
           <p className="mt-1 font-mono text-xs text-red-400">
-            &gt; {task.error.slice(0, 100)}
+            &gt; {session.error.slice(0, 100)}
           </p>
         )}
       </div>
 
       {/* Status + meta */}
       <div className="flex min-w-[120px] items-end justify-between gap-2 md:flex-col md:items-end md:justify-center">
-        <StatusBadge status={task.status} />
+        <StatusBadge status={session.status} />
         <div className="flex items-center gap-2">
-          {task.task_type && (
+          {session.session_type && (
             <span className="rounded border border-fg-4/30 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-fg-4">
-              {task.task_type}
+              {session.session_type}
             </span>
           )}
-          {task.changes_summary && (task.changes_summary.files_modified > 0 || task.changes_summary.files_created > 0 || task.changes_summary.files_deleted > 0) && (
-            <span className="flex items-center gap-1 font-mono text-[10px] text-cyan-400/70">
-              <span className="material-symbols-outlined text-xs">difference</span>
-              {task.changes_summary.diff_stats || `${task.changes_summary.files_modified + task.changes_summary.files_created + task.changes_summary.files_deleted} files`}
-            </span>
+          {session.changes_summary && (session.changes_summary.files_modified > 0 || session.changes_summary.files_created > 0 || session.changes_summary.files_deleted > 0) && (
+            <DiffStats diffStats={session.changes_summary.diff_stats} filesCount={session.changes_summary.files_modified + session.changes_summary.files_created + session.changes_summary.files_deleted} />
           )}
-          {task.pr_url && (
+          {session.workflow_run_id && (
+            <Link
+              to={`/workflows/runs/${session.workflow_run_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-0.5 font-mono text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
+              title="Workflow run"
+            >
+              <span className="material-symbols-outlined text-xs">account_tree</span>
+              WF
+            </Link>
+          )}
+          {session.pr_url && (
             <span className="flex items-center gap-0.5 font-mono text-[10px] text-teal-500">
               <span className="material-symbols-outlined text-xs">call_merge</span>
               PR
@@ -289,22 +297,46 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
   );
 }
 
+function DiffStats({ diffStats, filesCount }: { diffStats?: string; filesCount: number }) {
+  if (diffStats) {
+    const match = diffStats.match(/\+(\d+)\s+-(\d+)/);
+    if (match && (match[1] !== "0" || match[2] !== "0")) {
+      return (
+        <span className="flex items-center gap-1.5 font-mono text-xs">
+          <span className="material-symbols-outlined text-sm text-fg-4">difference</span>
+          <span className="text-emerald-400">+{match[1]}</span>
+          <span className="text-red-400">-{match[2]}</span>
+        </span>
+      );
+    }
+  }
+  if (filesCount > 0) {
+    return (
+      <span className="flex items-center gap-1 font-mono text-xs text-fg-4">
+        <span className="material-symbols-outlined text-sm">difference</span>
+        {filesCount} files
+      </span>
+    );
+  }
+  return null;
+}
+
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20">
       <span className="material-symbols-outlined mb-4 text-5xl text-slate-700">
         task
       </span>
-      <p className="mb-1 text-lg font-medium text-fg-3">No tasks yet</p>
+      <p className="mb-1 text-lg font-medium text-fg-3">No sessions yet</p>
       <p className="mb-6 text-sm text-fg-4">
-        Create your first AI coding task to get started.
+        Create your first AI coding session to get started.
       </p>
       <button
         onClick={onNew}
         className="flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-colors hover:bg-accent-hover"
       >
         <span className="material-symbols-outlined text-xl">add</span>
-        New Task
+        New Session
       </button>
     </div>
   );

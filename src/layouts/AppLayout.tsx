@@ -6,7 +6,7 @@ import { useHealth } from "../hooks/useHealth";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: "dashboard", end: true },
-  { to: "/tasks", label: "Tasks", icon: "task", end: false },
+  { to: "/sessions", label: "Sessions", icon: "task", end: false },
   { to: "/workflows", label: "Workflows", icon: "account_tree", end: false },
   { to: "/settings", label: "Settings", icon: "settings", end: false },
 ];
@@ -57,7 +57,6 @@ export default function AppLayout() {
                 <span className="material-symbols-outlined text-2xl text-accent">
                   terminal
                 </span>
-                <div className="absolute -bottom-1 -right-1 h-3 w-3 animate-pulse rounded-full bg-accent shadow-[0_0_8px_#00ff40]" />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-lg font-bold tracking-tight text-fg" style={{ textShadow: "0 0 10px rgba(0,255,64,0.5)" }}>

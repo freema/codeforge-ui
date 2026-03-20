@@ -1,7 +1,7 @@
 import type {
-  Task,
-  TaskType,
-  CreateTaskRequest,
+  Session,
+  SessionType,
+  CreateSessionRequest,
   HealthResponse,
   ProviderKey,
   CreateKeyRequest,
@@ -13,7 +13,6 @@ import type {
   WorkflowRun,
   CreateWorkflowRequest,
   RunWorkflowRequest,
-  ReviewResult,
   Repository,
   ToolDefinition,
   CLIEntry,
@@ -92,31 +91,36 @@ export function createApiClient(serverUrl: string, token: string) {
     request<T>(serverUrl, path, token, { method: "DELETE" });
 
   return {
-    // Tasks
-    listTasks: () =>
-      get<{ tasks: Task[] }>("/tasks").then((r) => r.tasks),
-    createTask: (req: CreateTaskRequest) => post<Task>("/tasks", req),
-    getTask: (id: string, include?: string) =>
-      get<Task>(`/tasks/${id}${include ? `?include=${include}` : ""}`),
-    cancelTask: (id: string) => post<void>(`/tasks/${id}/cancel`),
-    instructTask: (id: string, prompt: string) =>
-      post<void>(`/tasks/${id}/instruct`, { prompt }),
+    // Sessions
+    listSessions: () =>
+      get<{ sessions: Session[] }>("/sessions").then((r) => r.sessions),
+    createSession: (req: CreateSessionRequest) => post<Session>("/sessions", req),
+    getSession: (id: string, include?: string) =>
+      get<Session>(`/sessions/${id}${include ? `?include=${include}` : ""}`),
+    cancelSession: (id: string) => post<void>(`/sessions/${id}/cancel`),
+    instructSession: (id: string, prompt: string) =>
+      post<void>(`/sessions/${id}/instruct`, { prompt }),
     createPR: (
       id: string,
       req?: { title?: string; description?: string; target_branch?: string },
-    ) => post<Task>(`/tasks/${id}/create-pr`, req),
-    reviewTask: (id: string, req?: { cli?: string; model?: string }) =>
-      post<ReviewResult>(`/tasks/${id}/review`, req),
+    ) => post<Session>(`/sessions/${id}/create-pr`, req),
+    reviewSession: (id: string, req?: { cli?: string; model?: string }) =>
+      post<{ id: string; status: string }>(`/sessions/${id}/review`, req),
 
-    // Task Types
-    listTaskTypes: () =>
-      get<{ task_types: TaskType[] }>("/task-types").then((r) => r.task_types),
+    // Session Types
+    listSessionTypes: () =>
+      get<{ session_types: SessionType[] }>("/session-types").then((r) => r.session_types),
 
     // Repositories
     listRepositories: (providerKey: string) =>
       get<{ repositories: Repository[] }>(
         `/repositories?provider_key=${encodeURIComponent(providerKey)}`,
       ).then((r) => r.repositories),
+
+    listBranches: (providerKey: string, repo: string) =>
+      get<{ branches: { name: string; default: boolean }[] }>(
+        `/branches?provider_key=${encodeURIComponent(providerKey)}&repo=${encodeURIComponent(repo)}`,
+      ).then((r) => r.branches),
 
     // Tools
     listToolsCatalog: () =>
@@ -146,7 +150,7 @@ export function createApiClient(serverUrl: string, token: string) {
       get<{ workspaces: Workspace[] }>("/workspaces").then(
         (r) => r.workspaces,
       ),
-    deleteWorkspace: (taskId: string) => del<void>(`/workspaces/${taskId}`),
+    deleteWorkspace: (sessionId: string) => del<void>(`/workspaces/${sessionId}`),
 
     // Workflows
     listWorkflows: () =>
@@ -172,6 +176,12 @@ export function createApiClient(serverUrl: string, token: string) {
       ).then((r) => r.runs),
     getWorkflowRun: (runId: string) =>
       get<WorkflowRun>(`/workflow-runs/${runId}`),
+    cancelWorkflowRun: (runId: string) =>
+      post<void>(`/workflow-runs/${runId}/cancel`),
+    cancelAllWorkflowRuns: (workflowName?: string) =>
+      post<{ cancelled: number; message: string }>(
+        `/workflow-runs/cancel-all${workflowName ? `?workflow=${encodeURIComponent(workflowName)}` : ""}`,
+      ),
 
     // Sentry (proxied through BE)
     listSentryOrganizations: (keyName: string) =>
@@ -179,16 +189,16 @@ export function createApiClient(serverUrl: string, token: string) {
         `/sentry/organizations?key_name=${encodeURIComponent(keyName)}`,
       ).then((r) => r.organizations),
 
-    listSentryProjects: (keyName: string, org: string) =>
+    listSentryProjects: (keyName: string, org: string, region?: string) =>
       get<{ projects: SentryProject[] }>(
-        `/sentry/projects?key_name=${encodeURIComponent(keyName)}&org=${encodeURIComponent(org)}`,
+        `/sentry/projects?key_name=${encodeURIComponent(keyName)}&org=${encodeURIComponent(org)}${region ? `&region=${encodeURIComponent(region)}` : ""}`,
       ).then((r) => r.projects),
 
     listSentryIssues: (
       keyName: string,
       org: string,
       project: string,
-      opts?: { query?: string; sort?: string; limit?: number },
+      opts?: { query?: string; sort?: string; limit?: number; region?: string },
     ) => {
       const params = new URLSearchParams({
         key_name: keyName,
@@ -198,6 +208,7 @@ export function createApiClient(serverUrl: string, token: string) {
       if (opts?.query) params.set("query", opts.query);
       if (opts?.sort) params.set("sort", opts.sort);
       if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.region) params.set("region", opts.region);
       return get<{ issues: SentryIssue[] }>(
         `/sentry/issues?${params.toString()}`,
       ).then((r) => r.issues);

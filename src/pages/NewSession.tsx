@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { useCreateTask } from "../hooks/useTaskMutations";
+import { useCreateSession } from "../hooks/useSessionMutations";
 import { useKeys } from "../hooks/useKeys";
 import { useMCPServers } from "../hooks/useMCPServers";
 import { useRepositories } from "../hooks/useRepositories";
+import { useBranches } from "../hooks/useBranches";
 import { useCLIs } from "../hooks/useCLIs";
-import { useTaskTypes } from "../hooks/useTaskTypes";
-import { trackTaskId } from "../lib/taskStore";
+import { useSessionTypes } from "../hooks/useSessionTypes";
 import { usePageTitle } from "../hooks/usePageTitle";
 import Select from "../components/Select";
-import type { CreateTaskRequest, TaskConfig, Repository } from "../types";
+import type { CreateSessionRequest, SessionConfig, Repository } from "../types";
 
 const MODELS_BY_CLI: Record<string, { default: string; models: string[] }> = {
   "claude-code": {
@@ -34,22 +34,22 @@ const MODELS_BY_CLI: Record<string, { default: string; models: string[] }> = {
   },
 };
 
-const TASK_TYPE_ICONS: Record<string, string> = {
+const SESSION_TYPE_ICONS: Record<string, string> = {
   code: "code",
   plan: "map",
   review: "rate_review",
 };
 
-const TASK_TYPE_HINTS: Record<string, string> = {
+const SESSION_TYPE_HINTS: Record<string, string> = {
   code: "Be specific about the changes you want. The agent will clone the repo and work autonomously.",
   plan: "Describe what you want planned. The agent will analyze the repo and produce a step-by-step plan.",
   review: "Describe the review focus, or leave empty for a general review.",
 };
 
-export default function NewTask() {
-  usePageTitle("New Task");
+export default function NewSession() {
+  usePageTitle("New Session");
   const navigate = useNavigate();
-  const createTask = useCreateTask();
+  const createSession = useCreateSession();
   const { data: allKeys } = useKeys();
   const keys = useMemo(
     () => allKeys?.filter((k) => k.provider === "github" || k.provider === "gitlab"),
@@ -57,10 +57,10 @@ export default function NewTask() {
   );
   const { data: mcpServers } = useMCPServers();
   const { data: clis } = useCLIs();
-  const { data: taskTypes } = useTaskTypes();
+  const { data: taskTypes } = useSessionTypes();
 
-  // Task type
-  const [taskType, setTaskType] = useState("code");
+  // Session type
+  const [taskType, setSessionType] = useState("code");
 
   // Core fields
   const [providerKey, setProviderKey] = useState("");
@@ -87,6 +87,17 @@ export default function NewTask() {
   const { data: repos, isLoading: reposLoading } = useRepositories(
     providerKey || undefined,
   );
+
+  // Fetch branches when repo is selected
+  const { data: branches } = useBranches(
+    providerKey || undefined,
+    selectedRepo?.full_name,
+  );
+
+  const branchOptions = useMemo(() => {
+    if (!branches) return [];
+    return branches.map((b) => ({ value: b.name, label: b.name }));
+  }, [branches]);
 
   // Available CLIs only
   const availableClis = useMemo(
@@ -118,9 +129,9 @@ export default function NewTask() {
     ? `Default (${cliConfig.default})`
     : "Default";
 
-  const selectedTaskType = taskTypes?.find((t) => t.name === taskType);
-  const taskTypeHint = TASK_TYPE_HINTS[taskType] ?? selectedTaskType?.description ?? "";
-  const taskTypePlaceholder = selectedTaskType?.description ?? "Describe what the AI agent should do with this repository...";
+  const selectedSessionType = taskTypes?.find((t) => t.name === taskType);
+  const sessionTypeHint = SESSION_TYPE_HINTS[taskType] ?? selectedSessionType?.description ?? "";
+  const sessionTypePlaceholder = selectedSessionType?.description ?? "Describe what the AI agent should do with this repository...";
 
   function handleRepoSelect(repo: Repository) {
     setSelectedRepo(repo);
@@ -133,7 +144,7 @@ export default function NewTask() {
     e.preventDefault();
     setError("");
 
-    const config: TaskConfig = {};
+    const config: SessionConfig = {};
     if (selectedCli) config.cli = selectedCli;
     if (aiModel) config.ai_model = aiModel;
     if (timeout) config.timeout_seconds = Number(timeout);
@@ -145,21 +156,20 @@ export default function NewTask() {
       config.mcp_servers = selectedMcp.map((name) => ({ name }));
     }
 
-    const req: CreateTaskRequest = {
+    const req: CreateSessionRequest = {
       repo_url: repoUrl,
       prompt,
-      task_type: taskType,
+      session_type: taskType,
       ...(providerKey ? { provider_key: providerKey } : {}),
       ...(callbackUrl ? { callback_url: callbackUrl } : {}),
       ...(Object.keys(config).length > 0 ? { config } : {}),
     };
 
     try {
-      const task = await createTask.mutateAsync(req);
-      trackTaskId(task.id);
-      void navigate(`/tasks/${task.id}`);
+      const created = await createSession.mutateAsync(req);
+      void navigate(`/sessions/${created.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create task");
+      setError(err instanceof Error ? err.message : "Failed to create session");
     }
   }
 
@@ -175,9 +185,9 @@ export default function NewTask() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-10">
-        <h1 className="text-4xl font-bold tracking-tight text-fg">New Task</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-fg">New Session</h1>
         <p className="mt-2 text-sm text-fg-3">
-          Configure and launch an AI coding task
+          Configure and launch an AI coding session
         </p>
       </div>
 
@@ -273,41 +283,62 @@ export default function NewTask() {
               <label className="mb-2 block text-xs font-medium text-fg-3">
                 Source Branch
               </label>
-              <input
-                type="text"
-                value={sourceBranch}
-                onChange={(e) => setSourceBranch(e.target.value)}
-                placeholder={selectedRepo?.default_branch || "main"}
-                className={inputCls}
-              />
+              {branchOptions.length > 0 ? (
+                <Select
+                  value={sourceBranch}
+                  onChange={(v) => {
+                    setSourceBranch(v);
+                    setTargetBranch(v);
+                  }}
+                  options={branchOptions}
+                  placeholder={selectedRepo?.default_branch || "main"}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={sourceBranch}
+                  onChange={(e) => setSourceBranch(e.target.value)}
+                  placeholder={selectedRepo?.default_branch || "main"}
+                  className={inputCls}
+                />
+              )}
             </div>
             <div>
               <label className="mb-2 block text-xs font-medium text-fg-3">
                 Target Branch (for PR)
               </label>
-              <input
-                type="text"
-                value={targetBranch}
-                onChange={(e) => setTargetBranch(e.target.value)}
-                placeholder={selectedRepo?.default_branch || "main"}
-                className={inputCls}
-              />
+              {branchOptions.length > 0 ? (
+                <Select
+                  value={targetBranch}
+                  onChange={setTargetBranch}
+                  options={branchOptions}
+                  placeholder={selectedRepo?.default_branch || "main"}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={targetBranch}
+                  onChange={(e) => setTargetBranch(e.target.value)}
+                  placeholder={selectedRepo?.default_branch || "main"}
+                  className={inputCls}
+                />
+              )}
             </div>
           </div>
         )}
 
-        {/* Task Type */}
+        {/* Session Type */}
         {taskTypes && taskTypes.length > 0 && (
           <div>
             <label className="mb-2 block text-xs font-medium text-fg-3">
-              Task Type
+              Session Type
             </label>
             <div className="flex gap-2">
               {taskTypes.map((tt) => (
                 <button
                   key={tt.name}
                   type="button"
-                  onClick={() => setTaskType(tt.name)}
+                  onClick={() => setSessionType(tt.name)}
                   className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
                     taskType === tt.name
                       ? "border-accent bg-accent/10 text-accent"
@@ -315,7 +346,7 @@ export default function NewTask() {
                   }`}
                 >
                   <span className="material-symbols-outlined text-lg">
-                    {TASK_TYPE_ICONS[tt.name] ?? "task"}
+                    {SESSION_TYPE_ICONS[tt.name] ?? "task"}
                   </span>
                   {tt.label}
                 </button>
@@ -324,7 +355,7 @@ export default function NewTask() {
           </div>
         )}
 
-        {/* Task description */}
+        {/* Session description */}
         <div>
           <label className="mb-2 block text-xs font-medium text-fg-3">
             What should the agent do?
@@ -332,14 +363,14 @@ export default function NewTask() {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder={taskTypePlaceholder}
+            placeholder={sessionTypePlaceholder}
             required={taskType !== "review"}
             minLength={taskType === "review" ? 0 : 10}
             rows={5}
             className={inputCls + " resize-none"}
           />
           <p className="mt-2 text-xs text-fg-4">
-            {taskTypeHint}
+            {sessionTypeHint}
           </p>
         </div>
 
@@ -376,6 +407,37 @@ export default function NewTask() {
             />
           </div>
         </div>
+
+        {/* MCP Servers */}
+        {mcpServers && mcpServers.length > 0 && (
+          <div>
+            <label className="mb-2 block text-xs font-medium text-fg-3">
+              MCP Servers
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {mcpServers.map((s) => (
+                <button
+                  key={s.name}
+                  type="button"
+                  onClick={() => toggleMcp(s.name)}
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
+                    selectedMcp.includes(s.name)
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-edge bg-surface text-fg-3 hover:border-fg-4 hover:text-fg"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg">
+                    {selectedMcp.includes(s.name) ? "check_circle" : "extension"}
+                  </span>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-fg-4">
+              Enable MCP servers to give the agent additional capabilities
+            </p>
+          </div>
+        )}
 
         {/* Advanced */}
         <div className="rounded-xl border border-edge bg-surface">
@@ -448,33 +510,6 @@ export default function NewTask() {
                 />
               </div>
 
-              {/* MCP Servers */}
-              {mcpServers && mcpServers.length > 0 && (
-                <div>
-                  <label className="mb-2 block text-xs text-fg-3">
-                    MCP Servers
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {mcpServers.map((s) => (
-                      <button
-                        key={s.name}
-                        type="button"
-                        onClick={() => toggleMcp(s.name)}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
-                          selectedMcp.includes(s.name)
-                            ? "border-accent bg-accent/10 text-accent"
-                            : "border-edge text-fg-3 hover:border-fg-4"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          {selectedMcp.includes(s.name) ? "check_circle" : "radio_button_unchecked"}
-                        </span>
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -498,15 +533,15 @@ export default function NewTask() {
           </button>
           <button
             type="submit"
-            disabled={createTask.isPending || !repoUrl || !prompt}
+            disabled={createSession.isPending || !repoUrl || !prompt}
             className="flex items-center gap-2 rounded-lg bg-accent px-8 py-3 text-sm font-bold text-page shadow-[0_0_20px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover hover:shadow-[0_0_30px_rgba(0,255,64,0.5)] disabled:opacity-40 disabled:shadow-none"
           >
-            {createTask.isPending ? (
+            {createSession.isPending ? (
               <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
             ) : (
               <span className="material-symbols-outlined text-xl">bolt</span>
             )}
-            Launch Task
+            Launch Session
           </button>
         </div>
       </form>

@@ -1,9 +1,9 @@
-import type { StreamEvent, TaskStatus, RunStatus } from "../types";
+import type { StreamEvent, SessionStatus, RunStatus } from "../types";
 
 interface StreamHandlers {
   onEvent: (event: StreamEvent) => void;
-  onConnected: (data: { task_id: string; status: TaskStatus }) => void;
-  onDone: (data: { status: TaskStatus }) => void;
+  onConnected: (data: { session_id: string; status: SessionStatus }) => void;
+  onDone: (data: { status: SessionStatus }) => void;
   onError: (error: Error) => void;
 }
 
@@ -30,9 +30,9 @@ function parseSSE(chunk: string): { event?: string; data?: string }[] {
   return messages;
 }
 
-export function connectToTaskStream(
+export function connectToSessionStream(
   serverUrl: string,
-  taskId: string,
+  sessionId: string,
   token: string,
   handlers: StreamHandlers,
 ): AbortController {
@@ -40,7 +40,7 @@ export function connectToTaskStream(
 
   const connect = async () => {
     try {
-      const res = await fetch(`${serverUrl}/api/v1/tasks/${taskId}/stream`, {
+      const res = await fetch(`${serverUrl}/api/v1/sessions/${sessionId}/stream`, {
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal,
       });
@@ -73,12 +73,12 @@ export function connectToTaskStream(
               if (msg.event === "connected") {
                 handlers.onConnected(
                   parsed as unknown as {
-                    task_id: string;
-                    status: TaskStatus;
+                    session_id: string;
+                    status: SessionStatus;
                   },
                 );
               } else if (msg.event === "done") {
-                handlers.onDone(parsed as unknown as { status: TaskStatus });
+                handlers.onDone(parsed as unknown as { status: SessionStatus });
               } else {
                 handlers.onEvent({
                   type: (parsed.type as StreamEvent["type"]) ?? "stream",

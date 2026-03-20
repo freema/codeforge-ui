@@ -1,9 +1,9 @@
 export type {
-  TaskStatus,
-  TaskType,
-  Task,
-  TaskConfig,
-  CreateTaskRequest,
+  SessionStatus,
+  SessionType,
+  Session,
+  SessionConfig,
+  CreateSessionRequest,
   ChangesSummary,
   UsageInfo,
   Iteration,
@@ -13,9 +13,9 @@ export type {
   Repository,
   ToolDefinition,
   ToolConfigField,
-  TaskToolRef,
+  SessionToolRef,
   CLIEntry,
-} from "./task";
+} from "./session";
 export type { StreamEventType, StreamEvent } from "./stream";
 export type { HealthResponse } from "./health";
 export type { ProviderKey, CreateKeyRequest, KeyVerifyResult } from "./keys";

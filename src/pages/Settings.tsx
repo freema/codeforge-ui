@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeys, useCreateKey, useDeleteKey, useVerifyKey } from "../hooks/useKeys";
 import type { KeyVerifyResult, MCPServer } from "../types";
-import type { ToolDefinition } from "../types/task";
+import type { ToolDefinition } from "../types/session";
 import {
   useMCPServers,
   useCreateMCPServer,
@@ -11,18 +11,15 @@ import {
 } from "../hooks/useMCPServers";
 import { useToolsCatalog } from "../hooks/useTools";
 import { useWorkspaces, useDeleteWorkspace } from "../hooks/useWorkspaces";
-import SentryTab from "../components/SentryTab";
-
-type Tab = "keys" | "mcp" | "workspaces" | "sentry";
+type Tab = "keys" | "mcp" | "workspaces";
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "keys", label: "Provider Keys", icon: "vpn_key" },
   { id: "mcp", label: "MCP Servers", icon: "dns" },
   { id: "workspaces", label: "Workspaces", icon: "folder_open" },
-  { id: "sentry", label: "Sentry", icon: "bug_report" },
 ];
 
-const VALID_TABS = new Set<Tab>(["keys", "mcp", "workspaces", "sentry"]);
+const VALID_TABS = new Set<Tab>(["keys", "mcp", "workspaces"]);
 
 export default function Settings() {
   usePageTitle("Settings");
@@ -62,7 +59,6 @@ export default function Settings() {
       {activeTab === "keys" && <KeysTab />}
       {activeTab === "mcp" && <MCPTab />}
       {activeTab === "workspaces" && <WorkspacesTab />}
-      {activeTab === "sentry" && <SentryTab onSwitchToKeys={() => setActiveTab("keys")} />}
     </div>
   );
 }
@@ -1028,8 +1024,8 @@ function WorkspacesTab() {
   const deleteWorkspace = useDeleteWorkspace();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  async function handleDelete(taskId: string) {
-    await deleteWorkspace.mutateAsync(taskId);
+  async function handleDelete(sessionId: string) {
+    await deleteWorkspace.mutateAsync(sessionId);
     setConfirmDelete(null);
   }
 
@@ -1050,7 +1046,7 @@ function WorkspacesTab() {
         <div className="flex flex-col gap-3">
           {workspaces.map((w) => (
             <div
-              key={w.task_id}
+              key={w.session_id}
               className="flex items-center justify-between rounded-xl border border-edge bg-surface-alt p-4"
             >
               <div className="flex items-center gap-3">
@@ -1058,16 +1054,16 @@ function WorkspacesTab() {
                   <span className="material-symbols-outlined text-accent/60">folder</span>
                 </div>
                 <div>
-                  <span className="font-mono text-sm text-fg">{w.task_id.slice(0, 12)}...</span>
+                  <span className="font-mono text-sm text-fg">{w.session_id.slice(0, 12)}...</span>
                   <p className="text-xs text-fg-4">{w.path}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-mono text-sm text-fg-3">{Math.round(w.size_mb * 10) / 10} MB</span>
-                {confirmDelete === w.task_id ? (
+                {confirmDelete === w.session_id ? (
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => void handleDelete(w.task_id)}
+                      onClick={() => void handleDelete(w.session_id)}
                       disabled={deleteWorkspace.isPending}
                       className="rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-1.5 text-xs font-medium text-red-400"
                     >
@@ -1079,7 +1075,7 @@ function WorkspacesTab() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setConfirmDelete(w.task_id)}
+                    onClick={() => setConfirmDelete(w.session_id)}
                     className="rounded-md border border-edge p-1.5 text-fg-4 transition-colors hover:border-red-900/50 hover:text-red-400"
                   >
                     <span className="material-symbols-outlined text-base">delete</span>

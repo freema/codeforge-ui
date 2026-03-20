@@ -15,7 +15,7 @@ export function useDeleteWorkspace() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => api.deleteWorkspace(taskId),
+    mutationFn: (sessionId: string) => api.deleteWorkspace(sessionId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["workspaces"] }),
   });
 }

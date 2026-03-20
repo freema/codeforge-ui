@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 
-export function useTasks() {
+export function useSessions() {
   const api = useApi();
 
   return useQuery({
-    queryKey: ["tasks"],
-    queryFn: () => api.listTasks(),
+    queryKey: ["sessions"],
+    queryFn: () => api.listSessions(),
     refetchInterval: 15_000,
   });
 }

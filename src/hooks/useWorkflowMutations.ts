@@ -32,3 +32,30 @@ export function useRunWorkflow() {
     }: { name: string } & RunWorkflowRequest) => api.runWorkflow(name, req),
   });
 }
+
+export function useCancelWorkflowRun() {
+  const api = useApi();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (runId: string) => api.cancelWorkflowRun(runId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflowRuns"] });
+      qc.invalidateQueries({ queryKey: ["workflowRun"] });
+    },
+  });
+}
+
+export function useCancelAllWorkflowRuns() {
+  const api = useApi();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (workflowName?: string) =>
+      api.cancelAllWorkflowRuns(workflowName),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflowRuns"] });
+      qc.invalidateQueries({ queryKey: ["workflowRun"] });
+    },
+  });
+}

@@ -1,36 +1,38 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { connectToTaskStream } from "../lib/stream";
+import { useQueryClient } from "@tanstack/react-query";
+import { connectToSessionStream } from "../lib/stream";
 import { useAuth } from "../context/AuthContext";
-import type { StreamEvent, TaskStatus } from "../types";
+import type { StreamEvent, SessionStatus } from "../types";
 
 interface StreamState {
   events: StreamEvent[];
   connected: boolean;
-  taskStatus: TaskStatus | null;
+  sessionStatus: SessionStatus | null;
   error: string | null;
 }
 
-export function useTaskStream(taskId: string | undefined) {
+export function useSessionStream(sessionId: string | undefined) {
   const { serverUrl, token } = useAuth();
+  const queryClient = useQueryClient();
   const [state, setState] = useState<StreamState>({
     events: [],
     connected: false,
-    taskStatus: null,
+    sessionStatus: null,
     error: null,
   });
   const controllerRef = useRef<AbortController | null>(null);
 
   const connect = useCallback(() => {
-    if (!taskId) return;
+    if (!sessionId) return;
 
     controllerRef.current?.abort();
 
-    const controller = connectToTaskStream(serverUrl, taskId, token, {
+    const controller = connectToSessionStream(serverUrl, sessionId, token, {
       onConnected: (data) => {
         setState((prev) => ({
           ...prev,
           connected: true,
-          taskStatus: data.status,
+          sessionStatus: data.status,
           error: null,
         }));
       },
@@ -44,8 +46,10 @@ export function useTaskStream(taskId: string | undefined) {
         setState((prev) => ({
           ...prev,
           connected: false,
-          taskStatus: data.status,
+          sessionStatus: data.status,
         }));
+        // Invalidate session query so UI gets fresh data (review_result, status, etc.)
+        void queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
       },
       onError: (err) => {
         setState((prev) => ({
@@ -57,7 +61,7 @@ export function useTaskStream(taskId: string | undefined) {
     });
 
     controllerRef.current = controller;
-  }, [taskId, serverUrl, token]);
+  }, [sessionId, serverUrl, token]);
 
   useEffect(() => {
     connect();

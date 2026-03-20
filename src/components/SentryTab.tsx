@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, type FormEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from "react";
 import { useKeys } from "../hooks/useKeys";
 import { useRepositories } from "../hooks/useRepositories";
 import {
+  useSentryOrganizations,
   useSentryProjects,
   useSentryIssues,
   useSentryLatestEvent,
@@ -11,22 +12,50 @@ import { useWorkflowRuns } from "../hooks/useWorkflowRuns";
 import { useWorkflowRunStream } from "../hooks/useWorkflowRuns";
 import type { SentryConfig, SentryIssue, ProviderKey, WorkflowRun } from "../types";
 
-const STORAGE_KEY = "sentry-config";
+const STORAGE_KEY = "sentry-configs";
+const ACTIVE_KEY = "sentry-active-config";
 
-function loadConfig(): SentryConfig | null {
+function isValidConfig(cfg: SentryConfig): boolean {
+  return !!(cfg.key_name && cfg.org_slug && cfg.project_slug && cfg.repo_url);
+}
+
+function loadConfigs(): SentryConfig[] {
   try {
+    // Migrate from old single-config format
+    const oldRaw = localStorage.getItem("sentry-config");
+    if (oldRaw) {
+      const old = JSON.parse(oldRaw) as SentryConfig;
+      if (isValidConfig(old)) {
+        if (!old.label) old.label = `${old.org_slug}/${old.project_slug}`;
+        const configs = [old];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+        localStorage.setItem(ACTIVE_KEY, "0");
+        localStorage.removeItem("sentry-config");
+        return configs;
+      }
+      localStorage.removeItem("sentry-config");
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const cfg = JSON.parse(raw) as SentryConfig;
-    if (cfg.key_name && cfg.org_slug && cfg.project_slug && cfg.repo_url) return cfg;
-    return null;
+    if (!raw) return [];
+    const configs = JSON.parse(raw) as SentryConfig[];
+    return configs.filter(isValidConfig);
   } catch {
-    return null;
+    return [];
   }
 }
 
-function saveConfig(cfg: SentryConfig) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+function saveConfigs(configs: SentryConfig[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+}
+
+function loadActiveIndex(): number {
+  const raw = localStorage.getItem(ACTIVE_KEY);
+  return raw ? parseInt(raw, 10) || 0 : 0;
+}
+
+function saveActiveIndex(idx: number) {
+  localStorage.setItem(ACTIVE_KEY, String(idx));
 }
 
 const inputCls =
@@ -43,8 +72,10 @@ export default function SentryTab({
   onSwitchToKeys: () => void;
 }) {
   const { data: keys } = useKeys();
-  const [config, setConfig] = useState<SentryConfig | null>(loadConfig);
-  const [showConfig, setShowConfig] = useState(false);
+  const [configs, setConfigs] = useState<SentryConfig[]>(loadConfigs);
+  const [activeIdx, setActiveIdx] = useState(loadActiveIndex);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null); // null=not editing, -1=new config
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
 
   const sentryKeys = useMemo(
     () => keys?.filter((k) => k.provider === "sentry") ?? [],
@@ -52,35 +83,157 @@ export default function SentryTab({
   );
 
   const hasKey = sentryKeys.length > 0;
-  const hasConfig = config !== null;
+  const activeConfig = configs[activeIdx] ?? null;
 
   function handleSaveConfig(cfg: SentryConfig) {
-    saveConfig(cfg);
-    setConfig(cfg);
-    setShowConfig(false);
+    const newConfigs = [...configs];
+    if (editingIdx === -1) {
+      // Adding new
+      newConfigs.push(cfg);
+      const newIdx = newConfigs.length - 1;
+      saveConfigs(newConfigs);
+      saveActiveIndex(newIdx);
+      setConfigs(newConfigs);
+      setActiveIdx(newIdx);
+    } else if (editingIdx !== null) {
+      // Editing existing
+      newConfigs[editingIdx] = cfg;
+      saveConfigs(newConfigs);
+      setConfigs(newConfigs);
+    }
+    setEditingIdx(null);
+  }
+
+  function handleDeleteConfig(idx: number) {
+    const newConfigs = configs.filter((_, i) => i !== idx);
+    saveConfigs(newConfigs);
+    setConfigs(newConfigs);
+    setConfirmDeleteIdx(null);
+    // Adjust active index
+    if (newConfigs.length === 0) {
+      setActiveIdx(0);
+      saveActiveIndex(0);
+    } else if (activeIdx >= newConfigs.length) {
+      const newIdx = newConfigs.length - 1;
+      setActiveIdx(newIdx);
+      saveActiveIndex(newIdx);
+    }
+  }
+
+  function handleSwitchConfig(idx: number) {
+    setActiveIdx(idx);
+    saveActiveIndex(idx);
   }
 
   if (!hasKey) {
     return <SentrySetup onSwitchToKeys={onSwitchToKeys} />;
   }
 
-  if (!hasConfig || showConfig) {
+  if (editingIdx !== null) {
     return (
       <SentryConfigForm
         sentryKeys={sentryKeys}
         allKeys={keys ?? []}
-        initial={config}
+        initial={editingIdx === -1 ? null : configs[editingIdx] ?? null}
         onSave={handleSaveConfig}
-        onCancel={hasConfig ? () => setShowConfig(false) : undefined}
+        onCancel={() => setEditingIdx(null)}
+      />
+    );
+  }
+
+  if (configs.length === 0) {
+    return (
+      <SentryConfigForm
+        sentryKeys={sentryKeys}
+        allKeys={keys ?? []}
+        initial={null}
+        onSave={(cfg) => {
+          const newConfigs = [cfg];
+          saveConfigs(newConfigs);
+          saveActiveIndex(0);
+          setConfigs(newConfigs);
+          setActiveIdx(0);
+        }}
       />
     );
   }
 
   return (
-    <SentryIssuesView
-      config={config}
-      onOpenConfig={() => setShowConfig(true)}
-    />
+    <div className="space-y-4">
+      {/* Config switcher */}
+      {configs.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {configs.map((cfg, idx) => (
+            <div key={idx} className="relative group">
+              <button
+                onClick={() => handleSwitchConfig(idx)}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                  idx === activeIdx
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-edge bg-surface text-fg-3 hover:border-fg-4 hover:text-fg-2"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">bug_report</span>
+                <span className="font-mono">{cfg.label || `${cfg.org_slug}/${cfg.project_slug}`}</span>
+              </button>
+              {/* Edit/Delete on hover */}
+              <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditingIdx(idx); }}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-edge text-fg-4 hover:text-accent hover:border-accent/30 transition-colors"
+                  title="Edit"
+                >
+                  <span className="material-symbols-outlined text-[11px]">edit</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteIdx(idx); }}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-edge text-fg-4 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                  title="Delete"
+                >
+                  <span className="material-symbols-outlined text-[11px]">close</span>
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => setEditingIdx(-1)}
+            className="flex items-center gap-1 rounded-lg border border-dashed border-edge px-3 py-2 text-xs text-fg-4 transition-colors hover:border-accent/30 hover:text-accent"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            Add
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {confirmDeleteIdx !== null && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-900/10 px-4 py-2.5">
+          <span className="text-xs text-red-400">
+            Delete "{configs[confirmDeleteIdx]?.label || configs[confirmDeleteIdx]?.project_slug}"?
+          </span>
+          <button
+            onClick={() => handleDeleteConfig(confirmDeleteIdx)}
+            className="rounded bg-red-900/30 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-900/50"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => setConfirmDeleteIdx(null)}
+            className="text-xs text-fg-4 hover:text-fg-3"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Issues view for active config */}
+      {activeConfig && (
+        <SentryIssuesView
+          config={activeConfig}
+          onOpenConfig={() => setEditingIdx(activeIdx)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -124,11 +277,22 @@ function SentryConfigForm({
   onSave: (cfg: SentryConfig) => void;
   onCancel?: () => void;
 }) {
+  const [label, setLabel] = useState(initial?.label ?? "");
   const [keyName, setKeyName] = useState(initial?.key_name ?? sentryKeys[0]?.name ?? "");
   const [orgSlug, setOrgSlug] = useState(initial?.org_slug ?? "");
   const [projectSlug, setProjectSlug] = useState(initial?.project_slug ?? "");
   const [repoUrl, setRepoUrl] = useState(initial?.repo_url ?? "");
   const [providerKey, setProviderKey] = useState(initial?.provider_key ?? "");
+
+  // Auto-detect organizations from selected key
+  const { data: sentryOrgs, isLoading: orgsLoading } = useSentryOrganizations(keyName || undefined);
+
+  // Auto-select org when there's only one
+  useEffect(() => {
+    if (!orgSlug && sentryOrgs && sentryOrgs.length === 1) {
+      setOrgSlug(sentryOrgs[0]!.slug);
+    }
+  }, [sentryOrgs, orgSlug]);
 
   const { data: sentryProjects, isLoading: projectsLoading } = useSentryProjects(
     keyName || undefined,
@@ -140,11 +304,19 @@ function SentryConfigForm({
     [allKeys],
   );
 
+  // Auto-select first git key if only one exists
+  useEffect(() => {
+    if (!providerKey && gitKeys.length === 1) {
+      setProviderKey(gitKeys[0]!.name);
+    }
+  }, [gitKeys, providerKey]);
+
   const { data: repos, isLoading: reposLoading } = useRepositories(providerKey || undefined);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     onSave({
+      label: label || `${orgSlug}/${projectSlug}`,
       key_name: keyName,
       org_slug: orgSlug,
       project_slug: projectSlug,
@@ -176,27 +348,71 @@ function SentryConfigForm({
       </div>
 
       <div className="space-y-4">
+        {/* Label */}
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">Label</label>
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Production, Staging..."
+            className={inputCls}
+          />
+          <p className="mt-1 text-[11px] text-fg-4">Optional name to identify this configuration</p>
+        </div>
+
         {/* Sentry Key */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-fg-3">Sentry Key</label>
-          <select value={keyName} onChange={(e) => setKeyName(e.target.value)} className={selectCls}>
-            {sentryKeys.map((k) => (
-              <option key={k.name} value={k.name}>{k.name}</option>
-            ))}
-          </select>
+          {sentryKeys.length === 1 ? (
+            <div className={`flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 text-sm text-accent font-mono`}>
+              <span className="material-symbols-outlined text-base">vpn_key</span>
+              {sentryKeys[0]!.name}
+            </div>
+          ) : (
+            <select value={keyName} onChange={(e) => { setKeyName(e.target.value); setOrgSlug(""); setProjectSlug(""); }} className={selectCls}>
+              {sentryKeys.map((k) => (
+                <option key={k.name} value={k.name}>{k.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
-        {/* Org Slug */}
+        {/* Organization */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-fg-3">Organization Slug</label>
-          <input
-            type="text"
-            value={orgSlug}
-            onChange={(e) => { setOrgSlug(e.target.value); setProjectSlug(""); }}
-            placeholder="my-org"
-            required
-            className={inputCls}
-          />
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">Organization</label>
+          {orgsLoading ? (
+            <div className="flex items-center gap-2 py-2 text-xs text-fg-4">
+              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              Loading organizations...
+            </div>
+          ) : sentryOrgs && sentryOrgs.length === 1 ? (
+            <div className={`flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 text-sm text-accent font-mono`}>
+              <span className="material-symbols-outlined text-base">apartment</span>
+              {sentryOrgs[0]!.name} <span className="text-fg-4">({sentryOrgs[0]!.slug})</span>
+            </div>
+          ) : sentryOrgs && sentryOrgs.length > 1 ? (
+            <select
+              value={orgSlug}
+              onChange={(e) => { setOrgSlug(e.target.value); setProjectSlug(""); }}
+              required
+              className={selectCls}
+            >
+              <option value="">Select organization...</option>
+              {sentryOrgs.map((o) => (
+                <option key={o.slug} value={o.slug}>{o.name} ({o.slug})</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={orgSlug}
+              onChange={(e) => { setOrgSlug(e.target.value); setProjectSlug(""); }}
+              placeholder="my-org"
+              required
+              className={inputCls}
+            />
+          )}
         </div>
 
         {/* Project */}
@@ -214,12 +430,12 @@ function SentryConfigForm({
               required
               className={selectCls}
             >
-              <option value="">Select a project</option>
+              <option value="">Select project...</option>
               {sentryProjects.map((p) => (
                 <option key={p.id} value={p.slug}>{p.name} ({p.slug})</option>
               ))}
             </select>
-          ) : (
+          ) : orgSlug ? (
             <input
               type="text"
               value={projectSlug}
@@ -228,6 +444,8 @@ function SentryConfigForm({
               required
               className={inputCls}
             />
+          ) : (
+            <p className="py-2 text-xs text-fg-4">Select an organization first</p>
           )}
         </div>
 

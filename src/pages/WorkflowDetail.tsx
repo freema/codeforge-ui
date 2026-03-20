@@ -8,6 +8,8 @@ import { useWorkflowRuns } from "../hooks/useWorkflowRuns";
 import {
   useDeleteWorkflow,
   useRunWorkflow,
+  useCancelWorkflowRun,
+  useCancelAllWorkflowRuns,
 } from "../hooks/useWorkflowMutations";
 import { useKeys } from "../hooks/useKeys";
 import { useRepositories } from "../hooks/useRepositories";
@@ -16,7 +18,7 @@ import type { RunStatus, StepType } from "../types";
 
 const stepTypeColors: Record<StepType, { color: string; bg: string; icon: string }> = {
   fetch: { color: "text-cyan-400", bg: "bg-cyan-400/10", icon: "cloud_download" },
-  task: { color: "text-yellow-400", bg: "bg-yellow-400/10", icon: "terminal" },
+  session: { color: "text-yellow-400", bg: "bg-yellow-400/10", icon: "terminal" },
   action: { color: "text-purple-400", bg: "bg-purple-400/10", icon: "bolt" },
 };
 
@@ -25,6 +27,7 @@ const runStatusColors: Record<RunStatus, { color: string; bg: string; border: st
   running: { color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-500/20" },
   completed: { color: "text-accent", bg: "bg-accent/10", border: "border-accent/20" },
   failed: { color: "text-red-400", bg: "bg-red-400/10", border: "border-red-500/20" },
+  cancelled: { color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-500/20" },
 };
 
 export default function WorkflowDetail() {
@@ -37,6 +40,8 @@ export default function WorkflowDetail() {
   const { data: runs = [] } = useWorkflowRuns(decodedName);
   const deleteWorkflow = useDeleteWorkflow();
   const runWorkflow = useRunWorkflow();
+  const cancelRun = useCancelWorkflowRun();
+  const cancelAllRuns = useCancelAllWorkflowRuns();
   const { data: allKeys } = useKeys();
   const gitKeys = useMemo(
     () => allKeys?.filter((k) => k.provider === "github" || k.provider === "gitlab"),
@@ -52,8 +57,6 @@ export default function WorkflowDetail() {
   const firstGitKey = gitKeys?.[0]?.name;
   const { data: repos } = useRepositories(selectedKey || firstGitKey);
 
-  // Is this the code-review workflow?
-  const isCodeReview = decodedName === "code-review";
   const isSentryFixer = decodedName === "sentry-fixer";
 
   if (isLoading) {
@@ -235,23 +238,13 @@ export default function WorkflowDetail() {
                     <span className="ml-1 text-red-400">*</span>
                   )}
                 </label>
-                {isCodeReview && p.name === "prompt" ? (
-                  <textarea
-                    value={params[p.name] ?? p.default ?? ""}
-                    onChange={(e) => updateParam(p.name, e.target.value)}
-                    placeholder={p.default ?? `Enter ${p.name}...`}
-                    rows={3}
-                    className={inputCls + " resize-none"}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={params[p.name] ?? p.default ?? ""}
-                    onChange={(e) => updateParam(p.name, e.target.value)}
-                    placeholder={p.default ?? `Enter ${p.name}...`}
-                    className={inputCls}
-                  />
-                )}
+                <input
+                  type="text"
+                  value={params[p.name] ?? p.default ?? ""}
+                  onChange={(e) => updateParam(p.name, e.target.value)}
+                  placeholder={p.default ?? `Enter ${p.name}...`}
+                  className={inputCls}
+                />
               </div>
             ))}
 
@@ -336,31 +329,67 @@ export default function WorkflowDetail() {
               <span className="material-symbols-outlined text-sm text-accent">history</span>
               Recent Runs
             </h3>
+            {recentRuns.some((r) => r.status === "pending" || r.status === "running") && (
+              <button
+                onClick={() => {
+                  cancelAllRuns.mutate(decodedName, {
+                    onSuccess: (data) => toast("success", data.message),
+                    onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                  });
+                }}
+                disabled={cancelAllRuns.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-sm">stop_circle</span>
+                {cancelAllRuns.isPending ? "Cancelling..." : "Cancel All"}
+              </button>
+            )}
           </div>
           <div className="divide-y divide-edge">
             {recentRuns.map((run) => {
               const sc = runStatusColors[run.status];
+              const isRunActive = run.status === "pending" || run.status === "running";
               return (
-                <Link
+                <div
                   key={run.id}
-                  to={`/workflows/runs/${run.id}`}
                   className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-white/5"
                 >
-                  <span className="font-mono text-xs text-accent/60">
-                    {run.id.slice(0, 8)}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase ${sc.bg} ${sc.color} ${sc.border}`}
+                  <Link
+                    to={`/workflows/runs/${run.id}`}
+                    className="flex flex-1 items-center gap-4"
                   >
-                    {run.status === "running" && (
-                      <span className="size-1.5 animate-pulse rounded-full bg-current" />
-                    )}
-                    {run.status}
-                  </span>
-                  <span className="ml-auto font-mono text-xs text-fg-4">
-                    {formatTimeAgo(run.created_at)}
-                  </span>
-                </Link>
+                    <span className="font-mono text-xs text-accent/60">
+                      {run.id.slice(0, 8)}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase ${sc.bg} ${sc.color} ${sc.border}`}
+                    >
+                      {run.status === "running" && (
+                        <span className="size-1.5 animate-pulse rounded-full bg-current" />
+                      )}
+                      {run.status}
+                    </span>
+                    <span className="ml-auto font-mono text-xs text-fg-4">
+                      {formatTimeAgo(run.created_at)}
+                    </span>
+                  </Link>
+                  {isRunActive && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelRun.mutate(run.id, {
+                          onSuccess: () => toast("success", "Run cancellation requested"),
+                          onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+                        });
+                      }}
+                      disabled={cancelRun.isPending}
+                      className="flex items-center gap-1 rounded border border-red-900/50 bg-red-900/20 px-2 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-xs">stop</span>
+                      Cancel
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

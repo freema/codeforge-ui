@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate, Link } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { useTasks } from "../hooks/useTasks";
+import { useSessions } from "../hooks/useSessions";
 import StatusBadge from "../components/StatusBadge";
 
 const PIE_COLORS: Record<string, string> = {
@@ -20,47 +20,47 @@ const PIE_COLORS: Record<string, string> = {
 export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
-  const { data: tasks } = useTasks();
+  const { data: sessions } = useSessions();
 
   const ACTIVE_STATUSES = new Set(["pending", "cloning", "running", "reviewing", "creating_pr", "cancelling"]);
-  const running = useMemo(() => tasks?.filter((t) => ACTIVE_STATUSES.has(t.status)).length ?? 0, [tasks]);
-  const completed = useMemo(() => tasks?.filter((t) => t.status === "completed").length ?? 0, [tasks]);
-  const failed = useMemo(() => tasks?.filter((t) => t.status === "failed").length ?? 0, [tasks]);
-  const total = tasks?.length ?? 0;
+  const running = useMemo(() => sessions?.filter((t) => ACTIVE_STATUSES.has(t.status)).length ?? 0, [sessions]);
+  const completed = useMemo(() => sessions?.filter((t) => t.status === "completed").length ?? 0, [sessions]);
+  const failed = useMemo(() => sessions?.filter((t) => t.status === "failed").length ?? 0, [sessions]);
+  const total = sessions?.length ?? 0;
 
-  const tasksByStatus = useMemo(() => {
-    if (!tasks || tasks.length === 0) return [];
+  const sessionsByStatus = useMemo(() => {
+    if (!sessions || sessions.length === 0) return [];
     const counts: Record<string, number> = {};
-    for (const t of tasks) {
+    for (const t of sessions) {
       counts[t.status] = (counts[t.status] || 0) + 1;
     }
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [tasks]);
+  }, [sessions]);
 
-  const recentTasks = useMemo(() => {
-    if (!tasks) return [];
-    return [...tasks]
+  const recentSessions = useMemo(() => {
+    if (!sessions) return [];
+    return [...sessions]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 8);
-  }, [tasks]);
+  }, [sessions]);
 
-  const taskCount = tasks?.length ?? 0;
+  const sessionCount = sessions?.length ?? 0;
 
   // Compute pie chart conic gradient
   const pieGradient = useMemo(() => {
-    if (tasksByStatus.length === 0) return "";
-    const total = tasksByStatus.reduce((sum, s) => sum + s.value, 0);
+    if (sessionsByStatus.length === 0) return "";
+    const total = sessionsByStatus.reduce((sum, s) => sum + s.value, 0);
     let acc = 0;
-    const stops = tasksByStatus.map((s) => {
+    const stops = sessionsByStatus.map((s) => {
       const start = acc;
       acc += (s.value / total) * 100;
       const color = PIE_COLORS[s.name] || "#6b7280";
       return `${color} ${start}% ${acc}%`;
     });
     return `conic-gradient(${stops.join(", ")})`;
-  }, [tasksByStatus]);
+  }, [sessionsByStatus]);
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -72,13 +72,13 @@ export default function Dashboard() {
           </h2>
         </div>
         <button
-          onClick={() => void navigate("/tasks/new")}
+          onClick={() => void navigate("/sessions/new")}
           className="group flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 font-bold text-page shadow-[0_0_20px_rgba(0,255,64,0.3)]  transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,64,0.5)] hover:bg-accent-bold"
         >
           <span className="material-symbols-outlined text-xl transition-transform group-hover:rotate-90">
             add
           </span>
-          <span className="tracking-wide">NEW TASK</span>
+          <span className="tracking-wide">NEW SESSION</span>
         </button>
       </div>
 
@@ -116,17 +116,17 @@ export default function Dashboard() {
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Recent Tasks - 2 cols */}
+        {/* Recent Sessions - 2 cols */}
         <div className="flex flex-col overflow-hidden rounded-xl border border-edge bg-surface-alt lg:col-span-2">
           <div className="flex items-center justify-between border-b border-edge bg-surface/70 px-6 py-4">
             <h3 className="flex items-center gap-2 font-bold text-fg">
               <span className="material-symbols-outlined text-sm text-accent">
                 history
               </span>
-              Recent Tasks
+              Recent Sessions
             </h3>
             <Link
-              to="/tasks"
+              to="/sessions"
               className="flex items-center gap-1 text-xs font-medium text-accent/70 transition-colors hover:text-accent"
             >
               View all
@@ -134,12 +134,12 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="flex-1">
-            {recentTasks.length > 0 ? (
+            {recentSessions.length > 0 ? (
               <div className="divide-y divide-edge">
-                {recentTasks.map((t) => (
+                {recentSessions.map((t) => (
                   <Link
                     key={t.id}
-                    to={`/tasks/${t.id}`}
+                    to={`/sessions/${t.id}`}
                     className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-white/5"
                   >
                     <span className="shrink-0 font-mono text-xs text-accent/60">
@@ -163,24 +163,24 @@ export default function Dashboard() {
                 <span className="material-symbols-outlined mb-2 text-3xl text-fg-4">
                   task
                 </span>
-                <p className="text-sm text-fg-4">No tasks yet</p>
+                <p className="text-sm text-fg-4">No sessions yet</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Tasks by Status - 1 col */}
+        {/* Sessions by Status - 1 col */}
         <div className="flex flex-col overflow-hidden rounded-xl border border-edge bg-surface-alt">
           <div className="flex items-center justify-between border-b border-edge bg-surface/70 px-6 py-4">
             <h3 className="flex items-center gap-2 font-bold text-fg">
               <span className="material-symbols-outlined text-sm text-accent">
                 donut_large
               </span>
-              Tasks by Status
+              Sessions by Status
             </h3>
           </div>
           <div className="flex flex-1 flex-col items-center justify-center p-6">
-            {tasksByStatus.length > 0 ? (
+            {sessionsByStatus.length > 0 ? (
               <>
                 <div
                   className="relative mb-6 h-48 w-48 rounded-full"
@@ -188,15 +188,15 @@ export default function Dashboard() {
                 >
                   <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-surface-alt">
                     <span className="text-3xl font-bold tracking-tight text-fg">
-                      {taskCount.toLocaleString()}
+                      {sessionCount.toLocaleString()}
                     </span>
                     <span className="font-mono text-xs text-fg-3">
-                      TOTAL TASKS
+                      TOTAL SESSIONS
                     </span>
                   </div>
                 </div>
                 <div className="w-full space-y-3">
-                  {tasksByStatus.map((s) => (
+                  {sessionsByStatus.map((s) => (
                     <div
                       key={s.name}
                       className="flex items-center justify-between text-sm"
@@ -219,8 +219,8 @@ export default function Dashboard() {
                       </div>
                       <span className="font-mono text-fg">
                         {s.value} (
-                        {taskCount > 0
-                          ? Math.round((s.value / taskCount) * 100)
+                        {sessionCount > 0
+                          ? Math.round((s.value / sessionCount) * 100)
                           : 0}
                         %)
                       </span>
@@ -233,7 +233,7 @@ export default function Dashboard() {
                 <span className="material-symbols-outlined mb-2 text-3xl text-slate-700">
                   donut_large
                 </span>
-                <p className="text-sm text-fg-4">No task data yet</p>
+                <p className="text-sm text-fg-4">No session data yet</p>
               </div>
             )}
           </div>

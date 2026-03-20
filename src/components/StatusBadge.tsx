@@ -1,7 +1,7 @@
-import type { TaskStatus } from "../types";
+import type { SessionStatus } from "../types";
 
 const statusConfig: Record<
-  TaskStatus,
+  SessionStatus,
   { label: string; color: string; bg: string; border: string; icon: string; animated?: boolean }
 > = {
   pending: {
@@ -80,7 +80,7 @@ const statusConfig: Record<
   },
 };
 
-export default function StatusBadge({ status }: { status: TaskStatus }) {
+export default function StatusBadge({ status }: { status: SessionStatus }) {
   const config = statusConfig[status] ?? statusConfig.pending;
 
   return (

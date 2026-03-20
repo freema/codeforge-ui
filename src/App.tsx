@@ -3,9 +3,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import TaskList from "./pages/TaskList";
-import NewTask from "./pages/NewTask";
-import TaskDetail from "./pages/TaskDetail";
+import SessionList from "./pages/SessionList";
+import NewSession from "./pages/NewSession";
+import SessionDetail from "./pages/SessionDetail";
 import WorkflowList from "./pages/WorkflowList";
 import WorkflowDetail from "./pages/WorkflowDetail";
 import WorkflowRunDetail from "./pages/WorkflowRunDetail";
@@ -19,9 +19,9 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/tasks" element={<TaskList />} />
-          <Route path="/tasks/new" element={<NewTask />} />
-          <Route path="/tasks/:id" element={<TaskDetail />} />
+          <Route path="/sessions" element={<SessionList />} />
+          <Route path="/sessions/new" element={<NewSession />} />
+          <Route path="/sessions/:id" element={<SessionDetail />} />
           <Route path="/workflows" element={<WorkflowList />} />
           <Route path="/workflows/runs/:runId" element={<WorkflowRunDetail />} />
           <Route path="/workflows/:name" element={<WorkflowDetail />} />

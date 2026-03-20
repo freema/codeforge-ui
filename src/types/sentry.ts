@@ -2,6 +2,7 @@ export interface SentryOrganization {
   id: string;
   slug: string;
   name: string;
+  region: string;
 }
 
 export interface SentryIssue {
@@ -42,6 +43,7 @@ export interface SentryProject {
 }
 
 export interface SentryConfig {
+  label?: string;
   key_name: string;
   org_slug: string;
   project_slug: string;

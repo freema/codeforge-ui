@@ -1,4 +1,4 @@
-export type TaskStatus =
+export type SessionStatus =
   | "pending"
   | "cloning"
   | "running"
@@ -28,16 +28,16 @@ export interface ReviewIssue {
   suggestion?: string;
 }
 
-export interface TaskType {
+export interface SessionType {
   name: string;
   label: string;
   description: string;
 }
 
-export interface Task {
+export interface Session {
   id: string;
-  status: TaskStatus;
-  task_type?: string;
+  status: SessionStatus;
+  session_type?: string;
   repo_url: string;
   prompt: string;
   provider_key?: string;
@@ -46,20 +46,21 @@ export interface Task {
   changes_summary?: ChangesSummary;
   usage?: UsageInfo;
   review_result?: ReviewResult;
-  config?: TaskConfig;
+  config?: SessionConfig;
   iteration: number;
   current_prompt?: string;
   iterations?: Iteration[];
   branch?: string;
   pr_number?: number;
   pr_url?: string;
+  workflow_run_id?: string;
   trace_id?: string;
   created_at: string;
   started_at?: string;
   finished_at?: string;
 }
 
-export interface TaskConfig {
+export interface SessionConfig {
   timeout_seconds?: number;
   cli?: string;
   ai_model?: string;
@@ -68,24 +69,24 @@ export interface TaskConfig {
   source_branch?: string;
   target_branch?: string;
   max_budget_usd?: number;
-  workspace_task_id?: string;
+  workspace_session_id?: string;
   mcp_servers?: MCPServerRef[];
-  tools?: TaskToolRef[];
+  tools?: SessionToolRef[];
 }
 
-export interface TaskToolRef {
+export interface SessionToolRef {
   name: string;
   config?: Record<string, string>;
 }
 
-export interface CreateTaskRequest {
+export interface CreateSessionRequest {
   repo_url: string;
   prompt: string;
-  task_type?: string;
+  session_type?: string;
   access_token?: string;
   provider_key?: string;
   callback_url?: string;
-  config?: TaskConfig;
+  config?: SessionConfig;
 }
 
 export interface ChangesSummary {
@@ -106,7 +107,7 @@ export interface Iteration {
   prompt: string;
   result?: string;
   error?: string;
-  status: TaskStatus;
+  status: SessionStatus;
   changes?: ChangesSummary;
   usage?: UsageInfo;
   started_at: string;

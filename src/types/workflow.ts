@@ -1,4 +1,4 @@
-export type RunStatus = "pending" | "running" | "completed" | "failed";
+export type RunStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 
 export type StepStatus =
   | "pending"
@@ -7,7 +7,7 @@ export type StepStatus =
   | "failed"
   | "skipped";
 
-export type StepType = "fetch" | "task" | "action";
+export type StepType = "fetch" | "session" | "action";
 
 export interface ParameterDefinition {
   name: string;
@@ -36,7 +36,7 @@ export interface WorkflowRunStep {
   step_type: StepType;
   status: StepStatus;
   result?: string;
-  task_id?: string;
+  session_id?: string;
   error?: string;
   started_at?: string;
   finished_at?: string;

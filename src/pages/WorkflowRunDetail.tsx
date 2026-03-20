@@ -1,7 +1,10 @@
 import { useParams, Link } from "react-router";
 import { Loader2 } from "lucide-react";
+import { formatDuration } from "../lib/formatters";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useWorkflowRun, useWorkflowRunStream } from "../hooks/useWorkflowRuns";
+import { useCancelWorkflowRun } from "../hooks/useWorkflowMutations";
+import { useToast } from "../context/ToastContext";
 import StreamTerminal from "../components/StreamTerminal";
 import type { RunStatus, StepStatus } from "../types";
 
@@ -13,6 +16,7 @@ const runStatusConfig: Record<
   running: { color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-500/20", label: "RUNNING", icon: "play_arrow" },
   completed: { color: "text-accent", bg: "bg-accent/10", border: "border-accent/20", label: "COMPLETED", icon: "check_circle" },
   failed: { color: "text-red-400", bg: "bg-red-400/10", border: "border-red-500/20", label: "FAILED", icon: "error" },
+  cancelled: { color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-500/20", label: "CANCELLED", icon: "cancel" },
 };
 
 const stepStatusConfig: Record<
@@ -31,6 +35,8 @@ export default function WorkflowRunDetail() {
   const { runId } = useParams<{ runId: string }>();
   const { data: run, isLoading } = useWorkflowRun(runId);
   const stream = useWorkflowRunStream(runId);
+  const cancelRun = useCancelWorkflowRun();
+  const { toast } = useToast();
 
   if (isLoading) {
     return (
@@ -75,6 +81,21 @@ export default function WorkflowRunDetail() {
             </Link>
           </p>
         </div>
+        {isActive && (
+          <button
+            onClick={() => {
+              cancelRun.mutate(run.id, {
+                onSuccess: () => toast("success", "Run cancellation requested"),
+                onError: (err) => toast("error", `Cancel failed: ${err.message}`),
+              });
+            }}
+            disabled={cancelRun.isPending}
+            className="flex items-center gap-2 rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-lg">stop_circle</span>
+            {cancelRun.isPending ? "Cancelling..." : "Cancel Run"}
+          </button>
+        )}
       </div>
 
       {/* Info cards */}
@@ -150,13 +171,13 @@ export default function WorkflowRunDetail() {
                     <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${cfg.bg} ${cfg.color}`} style={{ borderColor: "currentColor", opacity: 0.7 }}>
                       {step.status}
                     </span>
-                    {step.task_id && (
+                    {step.session_id && (
                       <Link
-                        to={`/tasks/${step.task_id}`}
+                        to={`/sessions/${step.session_id}`}
                         className="ml-auto flex items-center gap-1 text-xs text-accent transition-colors hover:underline"
                       >
                         <span className="material-symbols-outlined text-sm">open_in_new</span>
-                        Task {step.task_id.slice(0, 8)}
+                        Session {step.session_id.slice(0, 8)}
                       </Link>
                     )}
                     {step.error && (
@@ -210,8 +231,3 @@ export default function WorkflowRunDetail() {
   );
 }
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}

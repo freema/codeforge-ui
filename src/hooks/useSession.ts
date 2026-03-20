@@ -1,22 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./useApi";
-import type { TaskStatus } from "../types";
+import type { SessionStatus } from "../types";
 
-const ACTIVE_STATUSES: TaskStatus[] = [
+const ACTIVE_STATUSES: SessionStatus[] = [
   "pending",
   "cloning",
   "running",
+  "reviewing",
   "awaiting_instruction",
   "creating_pr",
   "cancelling",
 ];
 
-export function useTask(id: string | undefined, include?: string) {
+export function useSession(id: string | undefined, include?: string) {
   const api = useApi();
 
   return useQuery({
-    queryKey: ["task", id, include],
-    queryFn: () => api.getTask(id!, include),
+    queryKey: ["session", id, include],
+    queryFn: () => api.getSession(id!, include),
     enabled: !!id,
     refetchInterval: (query) => {
       const status = query.state.data?.status;

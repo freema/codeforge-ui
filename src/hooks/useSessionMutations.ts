@@ -1,34 +1,34 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./useApi";
-import type { CreateTaskRequest } from "../types";
+import type { CreateSessionRequest } from "../types";
 
-export function useCreateTask() {
+export function useCreateSession() {
   const api = useApi();
 
   return useMutation({
-    mutationFn: (req: CreateTaskRequest) => api.createTask(req),
+    mutationFn: (req: CreateSessionRequest) => api.createSession(req),
   });
 }
 
-export function useCancelTask() {
+export function useCancelSession() {
   const api = useApi();
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => api.cancelTask(id),
-    onSuccess: (_data, id) => qc.invalidateQueries({ queryKey: ["task", id] }),
+    mutationFn: (id: string) => api.cancelSession(id),
+    onSuccess: (_data, id) => qc.invalidateQueries({ queryKey: ["session", id] }),
   });
 }
 
-export function useInstructTask() {
+export function useInstructSession() {
   const api = useApi();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, prompt }: { id: string; prompt: string }) =>
-      api.instructTask(id, prompt),
+      api.instructSession(id, prompt),
     onSuccess: (_data, { id }) =>
-      qc.invalidateQueries({ queryKey: ["task", id] }),
+      qc.invalidateQueries({ queryKey: ["session", id] }),
   });
 }
 
@@ -47,11 +47,11 @@ export function useCreatePR() {
       target_branch?: string;
     }) => api.createPR(id, req),
     onSuccess: (_data, { id }) =>
-      qc.invalidateQueries({ queryKey: ["task", id] }),
+      qc.invalidateQueries({ queryKey: ["session", id] }),
   });
 }
 
-export function useReviewTask() {
+export function useReviewSession() {
   const api = useApi();
   const qc = useQueryClient();
 
@@ -64,8 +64,8 @@ export function useReviewTask() {
       id: string;
       cli?: string;
       model?: string;
-    }) => api.reviewTask(id, { cli, model }),
+    }) => api.reviewSession(id, { cli, model }),
     onSuccess: (_data, { id }) =>
-      qc.invalidateQueries({ queryKey: ["task", id] }),
+      qc.invalidateQueries({ queryKey: ["session", id] }),
   });
 }

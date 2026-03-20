@@ -17,5 +17,5 @@ services:
       - ./.prettierrc:/app/.prettierrc
       - ./.prettierignore:/app/.prettierignore
     environment:
-      - CODEFORGE_URL=${CODEFORGE_URL:-http://localhost:8080}
+      - CODEFORGE_URL=${CODEFORGE_URL:-http://host.docker.internal:8080}
     restart: unless-stopped
