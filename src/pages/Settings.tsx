@@ -16,15 +16,16 @@ import {
 } from "../hooks/useMCPServers";
 import { useToolsCatalog } from "../hooks/useTools";
 import { useWorkspaces, useDeleteWorkspace } from "../hooks/useWorkspaces";
-type Tab = "keys" | "mcp" | "workspaces";
+type Tab = "keys" | "ai" | "mcp" | "workspaces";
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "keys", label: "Provider Keys", icon: "vpn_key" },
+  { id: "ai", label: "AI Providers", icon: "smart_toy" },
   { id: "mcp", label: "MCP Servers", icon: "dns" },
   { id: "workspaces", label: "Workspaces", icon: "folder_open" },
 ];
 
-const VALID_TABS = new Set<Tab>(["keys", "mcp", "workspaces"]);
+const VALID_TABS = new Set<Tab>(["keys", "ai", "mcp", "workspaces"]);
 
 export default function Settings() {
   usePageTitle("Settings");
@@ -57,13 +58,18 @@ export default function Settings() {
                 : "border-transparent text-fg-3 hover:text-fg"
             }`}
           >
-            <span className="material-symbols-outlined text-lg">{icon}</span>
+            {id === "ai" ? (
+              <AnthropicLogo className="h-4 w-4" />
+            ) : (
+              <span className="material-symbols-outlined text-lg">{icon}</span>
+            )}
             {label}
           </button>
         ))}
       </div>
 
       {activeTab === "keys" && <KeysTab />}
+      {activeTab === "ai" && <AIProvidersTab />}
       {activeTab === "mcp" && <MCPTab />}
       {activeTab === "workspaces" && <WorkspacesTab />}
     </div>
@@ -93,6 +99,46 @@ const KEY_PROVIDERS = [
     description: "Sentry authentication token",
   },
 ] as const;
+
+function AnthropicLogo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 256 176" fill="currentColor" className={className}>
+      <path d="m149.508 0 71.836 175.548h-45.381l-71.836-175.548z" />
+      <path d="M106.492 0H62.674L0 153.079h44.57l17.14-43.207h50.376L94.946 78.986l-9.905-25.398L106.492 0Z" />
+    </svg>
+  );
+}
+
+function OpenAILogo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.998 5.998 0 0 0-3.992 2.9 6.04 6.04 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073ZM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494ZM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646ZM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872v.024Zm16.597 3.855-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667Zm2.01-3.023-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66v.018ZM8.318 12.861l-2.02-1.164a.076.076 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.392.68l-.004 6.721h.01Zm1.096-2.365L12 8.893l2.59 1.494v2.998L12 14.88l-2.586-1.494v-2.89Z" />
+    </svg>
+  );
+}
+
+const AI_PROVIDERS = [
+  {
+    value: "anthropic",
+    label: "Anthropic",
+    description: "API key for Claude models (claude-code CLI)",
+    placeholder: "sk-ant-api03-...",
+    docsHint: "Get your key at console.anthropic.com",
+  },
+  {
+    value: "openai",
+    label: "OpenAI",
+    description: "API key for GPT/o-series models (codex CLI)",
+    placeholder: "sk-...",
+    docsHint: "Get your key at platform.openai.com",
+  },
+] as const;
+
+function AIProviderIcon({ provider, className = "" }: { provider: string; className?: string }) {
+  if (provider === "anthropic") return <AnthropicLogo className={className} />;
+  if (provider === "openai") return <OpenAILogo className={className} />;
+  return <span className={`material-symbols-outlined ${className}`}>smart_toy</span>;
+}
 
 function KeysTab() {
   const { data: keys, isLoading } = useKeys();
@@ -231,6 +277,11 @@ function KeysTab() {
                         <span className="rounded-full border border-edge bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-fg-3">
                           {k.provider}
                         </span>
+                        {k.source === "env" && (
+                          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                            ENV
+                          </span>
+                        )}
                         {k.base_url && (
                           <span className="font-mono text-[10px] text-fg-4">
                             {k.base_url}
@@ -294,7 +345,16 @@ function KeysTab() {
                       {isVerifying ? "Checking" : vr ? "Re-check" : "Verify"}
                     </button>
 
-                    {confirmDelete === k.name ? (
+                    {k.source === "env" ? (
+                      <span
+                        className="rounded-md border border-edge p-1.5 text-fg-4 opacity-30 cursor-not-allowed"
+                        title="Environment keys cannot be deleted"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          lock
+                        </span>
+                      </span>
+                    ) : confirmDelete === k.name ? (
                       <span className="flex items-center gap-2">
                         <button
                           onClick={() => void handleDelete(k.name)}
@@ -434,6 +494,296 @@ function KeysTab() {
               <span className="material-symbols-outlined animate-spin text-base">
                 progress_activity
               </span>
+            ) : (
+              <span className="material-symbols-outlined text-lg">add</span>
+            )}
+            Add Key
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function AIProvidersTab() {
+  const { data: allKeys, isLoading } = useKeys();
+  const createKey = useCreateKey();
+  const deleteKey = useDeleteKey();
+  const verifyKey = useVerifyKey();
+
+  const aiKeys = useMemo(
+    () => allKeys?.filter((k) => k.provider === "anthropic" || k.provider === "openai") ?? [],
+    [allKeys]
+  );
+
+  const [formMode, setFormMode] = useState<"select" | "form">("select");
+  const [provider, setProvider] = useState("anthropic");
+  const [name, setName] = useState("");
+  const [token, setToken] = useState("");
+  const [validationError, setValidationError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [verifyResults, setVerifyResults] = useState<Record<string, KeyVerifyResult>>({});
+  const [verifying, setVerifying] = useState<string | null>(null);
+
+  function selectProvider(value: string) {
+    setProvider(value);
+    setName(value); // default name = provider name
+    setValidationError("");
+    setFormMode("form");
+  }
+
+  function goBack() {
+    setName("");
+    setToken("");
+    setValidationError("");
+    setFormMode("select");
+  }
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault();
+    setValidationError("");
+
+    await createKey.mutateAsync({
+      name,
+      provider,
+      token,
+    });
+    setName("");
+    setToken("");
+    setFormMode("select");
+  }
+
+  async function handleDelete(keyName: string) {
+    await deleteKey.mutateAsync(keyName);
+    setConfirmDelete(null);
+    setVerifyResults((prev) => {
+      const next = { ...prev };
+      delete next[keyName];
+      return next;
+    });
+  }
+
+  async function handleVerify(keyName: string) {
+    setVerifying(keyName);
+    try {
+      const result = await verifyKey.mutateAsync(keyName);
+      setVerifyResults((prev) => ({ ...prev, [keyName]: result }));
+    } catch {
+      setVerifyResults((prev) => ({
+        ...prev,
+        [keyName]: { name: keyName, provider: "", valid: false, error: "Connection failed" },
+      }));
+    } finally {
+      setVerifying(null);
+    }
+  }
+
+  const CLI_FOR_PROVIDER: Record<string, string> = {
+    anthropic: "claude-code",
+    openai: "codex",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Warning if no AI keys */}
+      {!isLoading && aiKeys.length === 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <span className="material-symbols-outlined mt-0.5 text-amber-400">warning</span>
+          <div>
+            <p className="text-sm font-medium text-amber-300">No AI provider keys configured</p>
+            <p className="mt-1 text-xs text-amber-400/80">
+              Sessions will fail unless <code className="rounded bg-amber-500/10 px-1 py-0.5 font-mono">ANTHROPIC_API_KEY</code> or{" "}
+              <code className="rounded bg-amber-500/10 px-1 py-0.5 font-mono">OPENAI_API_KEY</code> is set as an environment variable on the server.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Existing AI keys */}
+      {isLoading ? (
+        <LoadingSkeleton />
+      ) : aiKeys.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {aiKeys.map((k) => {
+            const vr = verifyResults[k.name];
+            const isVerifying = verifying === k.name;
+            const cliName = CLI_FOR_PROVIDER[k.provider] ?? k.provider;
+
+            return (
+              <div
+                key={k.name}
+                className={`rounded-xl border p-4 transition-colors ${
+                  vr
+                    ? vr.valid
+                      ? "border-accent/30 bg-accent/5"
+                      : "border-red-500/30 bg-red-500/5"
+                    : "border-edge bg-surface-alt"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                        vr
+                          ? vr.valid
+                            ? "bg-accent/10 border border-accent/30"
+                            : "bg-red-500/10 border border-red-500/30"
+                          : "bg-surface border border-edge"
+                      }`}
+                    >
+                      {vr ? (
+                        <span className={`material-symbols-outlined ${vr.valid ? "text-accent" : "text-red-400"}`}>
+                          {vr.valid ? "verified" : "gpp_bad"}
+                        </span>
+                      ) : (
+                        <AIProviderIcon provider={k.provider} className={`h-5 w-5 text-fg-3`} />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-fg">{k.name}</span>
+                        <span className="rounded-full border border-edge bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-fg-3">
+                          {k.provider}
+                        </span>
+                        {k.source === "env" && (
+                          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                            ENV
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-fg-4">
+                        Used by: <span className="font-mono text-fg-3">{cliName}</span>
+                      </p>
+                      {vr && vr.valid && (
+                        <div className="mt-1 flex items-center gap-2 text-xs text-fg-3">
+                          <span className="material-symbols-outlined text-sm text-accent">check_circle</span>
+                          <span className="font-medium text-fg-2">{vr.scopes || "Valid"}</span>
+                        </div>
+                      )}
+                      {vr && !vr.valid && (
+                        <p className="mt-1 text-xs text-red-400">{vr.error || "Token is invalid or expired"}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => void handleVerify(k.name)}
+                      disabled={isVerifying}
+                      className="flex items-center gap-1.5 rounded-lg border border-edge px-3 py-2 text-xs font-medium text-fg-3 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
+                    >
+                      {isVerifying ? (
+                        <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                      ) : (
+                        <span className="material-symbols-outlined text-sm">verified</span>
+                      )}
+                      {isVerifying ? "Checking" : vr ? "Re-check" : "Verify"}
+                    </button>
+
+                    {k.source === "env" ? (
+                      <span className="rounded-md border border-edge p-1.5 text-fg-4 opacity-30 cursor-not-allowed" title="Environment keys cannot be deleted">
+                        <span className="material-symbols-outlined text-base">lock</span>
+                      </span>
+                    ) : confirmDelete === k.name ? (
+                      <span className="flex items-center gap-2">
+                        <button onClick={() => void handleDelete(k.name)} disabled={deleteKey.isPending} className="rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs font-medium text-red-400">
+                          Confirm
+                        </button>
+                        <button onClick={() => setConfirmDelete(null)} className="text-xs text-fg-3">Cancel</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDelete(k.name)} className="rounded-md border border-edge p-1.5 text-fg-4 transition-colors hover:border-red-900/50 hover:text-red-400">
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Provider picker */}
+      {formMode === "select" && (
+        <div className="rounded-xl border border-edge bg-surface/50 p-5">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
+            <span className="material-symbols-outlined text-accent text-base">add_circle</span>
+            Add AI Provider Key
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {AI_PROVIDERS.map((p) => {
+              const alreadyHas = aiKeys.some((k) => k.provider === p.value);
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  disabled={alreadyHas}
+                  onClick={() => selectProvider(p.value)}
+                  className={`group flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors ${
+                    alreadyHas
+                      ? "cursor-default border-accent/20 bg-accent/5 opacity-60"
+                      : "border-edge bg-surface-alt hover:border-accent/40 hover:bg-accent/5"
+                  }`}
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <AIProviderIcon provider={p.value} className={`h-5 w-5 ${alreadyHas ? "text-accent" : "text-fg-3 group-hover:text-accent"}`} />
+                    {alreadyHas && <span className="material-symbols-outlined text-sm text-accent">check_circle</span>}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-fg">{p.label}</p>
+                    <p className="mt-0.5 text-xs text-fg-4">{p.description}</p>
+                  </div>
+                  <span className="text-[10px] text-fg-4">{p.docsHint}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Key form */}
+      {formMode === "form" && (
+        <form onSubmit={(e) => void handleAdd(e)} className="rounded-xl border border-edge bg-surface/50 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
+              <AIProviderIcon provider={provider} className="h-4 w-4 text-accent" />
+              {AI_PROVIDERS.find((p) => p.value === provider)?.label}
+            </h3>
+            <button type="button" onClick={goBack} className="flex items-center gap-1 text-xs text-fg-3 transition-colors hover:text-accent">
+              <span className="material-symbols-outlined text-sm">arrow_back</span>
+              Back
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Name"
+              required
+              className={inputCls}
+            />
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder={AI_PROVIDERS.find((p) => p.value === provider)?.placeholder ?? "API Key"}
+              required
+              className={inputCls}
+            />
+          </div>
+
+          {validationError && <p className="mt-3 text-xs text-red-400">{validationError}</p>}
+
+          <button
+            type="submit"
+            disabled={createKey.isPending}
+            className="mt-4 flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-bold text-page transition-all hover:bg-accent-hover disabled:opacity-50"
+          >
+            {createKey.isPending ? (
+              <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
             ) : (
               <span className="material-symbols-outlined text-lg">add</span>
             )}
@@ -642,11 +992,25 @@ const TOOL_ICONS: Record<string, string> = {
   playwright: "web",
 };
 
+// Extracts provider_key values from a tool's required_config fields.
+function getToolProviderKeys(tool: ToolDefinition): string[] {
+  return (tool.required_config ?? [])
+    .map((f) => f.provider_key)
+    .filter((p): p is string => !!p);
+}
+
 function MCPTab() {
   const { data: servers, isLoading } = useMCPServers();
   const { data: catalog, isLoading: catalogLoading } = useToolsCatalog();
+  const { data: allKeys } = useKeys();
   const createServer = useCreateMCPServer();
   const deleteServer = useDeleteMCPServer();
+
+  // Providers that have a key configured (db or env)
+  const configuredProviders = useMemo(
+    () => new Set(allKeys?.map((k) => k.provider) ?? []),
+    [allKeys],
+  );
 
   const [formMode, setFormMode] = useState<"select" | "preset" | "custom">(
     "select",
@@ -823,29 +1187,104 @@ function MCPTab() {
     await deleteServer.mutateAsync(serverName);
   }
 
+  // Tools that are ready (have matching provider key or no config needed) and not manually added as MCP server
+  const readyTools = useMemo(
+    () =>
+      mcpTools.filter((tool) => {
+        if (serverNames.has(tool.name)) return false; // already has manual MCP server
+        const needsConfig = (tool.required_config?.length ?? 0) > 0;
+        if (!needsConfig) return true; // no config needed = always ready
+        const providerKeys = getToolProviderKeys(tool);
+        return providerKeys.some((p) => configuredProviders.has(p));
+      }),
+    [mcpTools, serverNames, configuredProviders],
+  );
+
+  // Tools that need manual config (have required fields without provider key match)
+  const availableTools = useMemo(
+    () =>
+      mcpTools.filter((tool) => {
+        if (serverNames.has(tool.name)) return false;
+        if (readyTools.some((r) => r.name === tool.name)) return false;
+        return true;
+      }),
+    [mcpTools, serverNames, readyTools],
+  );
+
   return (
     <div className="space-y-6">
+      {/* ── Ready to use ── */}
+      {!isLoading && !catalogLoading && readyTools.length > 0 && (
+        <div>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
+            <span className="material-symbols-outlined text-accent text-base">check_circle</span>
+            Ready to Use
+          </h3>
+          <div className="flex flex-col gap-3">
+            {readyTools.map((tool) => {
+              const providerKeys = getToolProviderKeys(tool);
+              const matchingKey = allKeys?.find((k) => providerKeys.includes(k.provider));
+              const hasKey = !!matchingKey;
+              return (
+                <div key={tool.name} className="rounded-xl border border-accent/20 bg-accent/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-accent/30 bg-accent/10">
+                      <span className="material-symbols-outlined text-accent">
+                        {TOOL_ICONS[tool.name] ?? "extension"}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-fg capitalize">{tool.name}</span>
+                        <span className="material-symbols-outlined text-sm text-accent">check_circle</span>
+                        {matchingKey?.source === "env" && (
+                          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                            ENV
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-fg-4">{tool.description}</p>
+                      {hasKey && (
+                        <p className="mt-1 flex items-center gap-1 text-[10px] text-accent/80">
+                          <span className="material-symbols-outlined text-xs">vpn_key</span>
+                          {matchingKey.source === "env"
+                            ? `Using ${matchingKey.scope} environment variable`
+                            : `Using key "${matchingKey.name}" from Provider Keys`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Manually configured MCP servers ── */}
       {isLoading ? (
         <LoadingSkeleton />
       ) : servers && servers.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {servers.map((s) => (
-            <MCPServerCard
-              key={s.name}
-              server={s}
-              onDelete={handleDelete}
-              isDeleting={deleteServer.isPending}
-            />
-          ))}
+        <div>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
+            <span className="material-symbols-outlined text-fg-3 text-base">dns</span>
+            Custom Servers
+          </h3>
+          <div className="flex flex-col gap-3">
+            {servers.map((s) => (
+              <MCPServerCard
+                key={s.name}
+                server={s}
+                onDelete={handleDelete}
+                isDeleting={deleteServer.isPending}
+              />
+            ))}
+          </div>
         </div>
-      ) : (
-        <p className="py-8 text-center text-sm text-fg-4">
-          No MCP servers configured.
-        </p>
-      )}
+      ) : null}
 
-      {/* ── Service Picker ── */}
-      {formMode === "select" && (
+      {/* ── Add more ── */}
+      {formMode === "select" && (availableTools.length > 0 || true) && (
         <div className="rounded-xl border border-edge bg-surface/50 p-5">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
             <span className="material-symbols-outlined text-accent text-base">
@@ -866,26 +1305,31 @@ function MCPTab() {
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {mcpTools.map((tool) => {
+                const alreadyReady = readyTools.some((r) => r.name === tool.name);
                 const alreadyAdded = serverNames.has(tool.name);
+                const isDisabled = alreadyAdded || alreadyReady;
+                const needsConfig = (tool.required_config?.length ?? 0) > 0;
+                const providerKeys = getToolProviderKeys(tool);
+                const hasKey = providerKeys.some((p) => configuredProviders.has(p));
                 return (
                   <button
                     key={tool.name}
                     type="button"
-                    disabled={alreadyAdded}
+                    disabled={isDisabled}
                     onClick={() => selectPreset(tool)}
                     className={`group relative flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors ${
-                      alreadyAdded
+                      isDisabled
                         ? "cursor-default border-accent/20 bg-accent/5 opacity-60"
                         : "border-edge bg-surface-alt hover:border-accent/40 hover:bg-accent/5"
                     }`}
                   >
                     <div className="flex w-full items-center justify-between">
                       <span
-                        className={`material-symbols-outlined text-xl ${alreadyAdded ? "text-accent" : "text-fg-3 group-hover:text-accent"}`}
+                        className={`material-symbols-outlined text-xl ${isDisabled ? "text-accent" : "text-fg-3 group-hover:text-accent"}`}
                       >
                         {TOOL_ICONS[tool.name] ?? "extension"}
                       </span>
-                      {alreadyAdded && (
+                      {isDisabled && (
                         <span className="material-symbols-outlined text-sm text-accent">
                           check_circle
                         </span>
@@ -899,7 +1343,7 @@ function MCPTab() {
                         {tool.description}
                       </p>
                     </div>
-                    {(tool.required_config?.length ?? 0) > 0 && (
+                    {!isDisabled && needsConfig && !hasKey && (
                       <span className="text-[10px] text-fg-4">
                         {tool.required_config!.length} config field
                         {tool.required_config!.length !== 1 && "s"}

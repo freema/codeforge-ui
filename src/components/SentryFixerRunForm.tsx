@@ -60,11 +60,14 @@ export default function SentryFixerRunForm() {
   const { data: orgs, isLoading: orgsLoading } = useSentryOrganizations(
     effectiveKey || undefined,
   );
-  const [orgSlug, setOrgSlug] = useState(config?.org_slug ?? "");
+  const [orgSlug, setOrgSlug] = useState("");
   const [orgRegion, setOrgRegion] = useState("");
   const effectiveOrg = orgSlug || (orgs?.length === 1 ? orgs[0]!.slug : "");
   const effectiveRegion =
-    orgRegion || (orgs?.length === 1 ? orgs[0]!.region : "");
+    orgRegion ||
+    (orgs?.length === 1
+      ? orgs[0]!.region
+      : orgs?.find((o) => o.slug === orgSlug)?.region ?? "");
 
   // ── Projects ──
   const { data: sentryProjects, isLoading: projectsLoading } =
@@ -90,6 +93,9 @@ export default function SentryFixerRunForm() {
     effectiveGitKey || undefined,
   );
   const [repoUrl, setRepoUrl] = useState(config?.repo_url ?? "");
+
+  // ── Max issues ──
+  const [maxIssues, setMaxIssues] = useState("5");
 
   // ── Issues preview (readonly) ──
   const { data: issues, isLoading: issuesLoading } = useSentryIssues(
@@ -121,6 +127,7 @@ export default function SentryFixerRunForm() {
         repo_url: repoUrl,
         key_name: effectiveKey,
         provider_key: effectiveGitKey,
+        max_issues: maxIssues,
       },
     });
     void navigate(`/workflows/runs/${run.id}`);
@@ -317,6 +324,31 @@ export default function SentryFixerRunForm() {
         </div>
       )}
 
+      {/* ── Max Issues ── */}
+      {step >= 4 && (
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-fg-3">
+            Max issues to fix
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min={1}
+              max={20}
+              value={maxIssues}
+              onChange={(e) => setMaxIssues(e.target.value)}
+              className="flex-1 accent-accent"
+            />
+            <span className="w-8 text-center font-mono text-sm font-bold text-accent">
+              {maxIssues}
+            </span>
+          </div>
+          <p className="mt-1 text-[10px] text-fg-4">
+            Claude will process the top {maxIssues} most critical issues by severity and frequency.
+          </p>
+        </div>
+      )}
+
       {/* ── Issues Preview (readonly) ── */}
       {step >= 4 && (
         <>
@@ -390,12 +422,11 @@ export default function SentryFixerRunForm() {
                   play_arrow
                 </span>
               )}
-              Fix All Issues
+              Fix Top {maxIssues} Issues
             </button>
             {issues && issues.length > 0 && (
               <span className="text-xs text-fg-4">
-                Claude will analyze {issues.length} issue
-                {issues.length !== 1 && "s"} and fix what it can
+                {issues.length} unresolved — will process up to {maxIssues}
               </span>
             )}
           </div>

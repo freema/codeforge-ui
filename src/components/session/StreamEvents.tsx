@@ -338,8 +338,70 @@ function TerminalEvent({ event }: { event: StreamEvent }) {
       );
     }
 
+    // Result — session result with optional metadata (cost, tokens, turns)
+    if (dataType === "result") {
+      const usage = raw?.usage as Record<string, unknown> | undefined;
+      const cost = raw?.total_cost_usd as number | undefined;
+      const inputTokens = usage?.input_tokens as number | undefined;
+      const outputTokens = usage?.output_tokens as number | undefined;
+      const numTurns = raw?.num_turns as number | undefined;
+      const durationMs = raw?.duration_ms as number | undefined;
+      const hasMeta =
+        cost != null ||
+        inputTokens != null ||
+        numTurns != null ||
+        durationMs != null;
+
+      // Don't show text content — it was already shown in the preceding assistant
+      // text event. Only render if we have metadata (cost, tokens, etc.).
+      if (!hasMeta) return null;
+
+      return (
+        <div className="flex items-start gap-2 px-2 py-1">
+          <span className="w-14 shrink-0 font-mono text-[10px] text-fg-4 pt-0.5">
+            {ts}
+          </span>
+          <div className="min-w-0 flex-1">
+            {hasMeta && (
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {cost != null && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-accent">
+                    ${cost.toFixed(3)}
+                  </span>
+                )}
+                {inputTokens != null && outputTokens != null && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-fg-4/10 px-1.5 py-0.5 text-[10px] font-mono text-fg-3">
+                    {inputTokens > 1000
+                      ? `${(inputTokens / 1000).toFixed(1)}k`
+                      : inputTokens}
+                    →
+                    {outputTokens > 1000
+                      ? `${(outputTokens / 1000).toFixed(1)}k`
+                      : outputTokens}{" "}
+                    tokens
+                  </span>
+                )}
+                {numTurns != null && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-fg-4/10 px-1.5 py-0.5 text-[10px] font-mono text-fg-3">
+                    {numTurns} {numTurns === 1 ? "turn" : "turns"}
+                  </span>
+                )}
+                {durationMs != null && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-fg-4/10 px-1.5 py-0.5 text-[10px] font-mono text-fg-3">
+                    {durationMs > 60000
+                      ? `${(durationMs / 60000).toFixed(1)}m`
+                      : `${(durationMs / 1000).toFixed(1)}s`}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // Text — agent speaking
-    if (dataType === "text" || dataType === "result") {
+    if (dataType === "text") {
       if (!content) return null;
       return (
         <div className="flex items-start gap-2 px-2 py-1">

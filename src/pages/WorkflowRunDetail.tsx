@@ -2,10 +2,9 @@ import { useParams, Link } from "react-router";
 import { Loader2 } from "lucide-react";
 import { formatDuration } from "../lib/formatters";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { useWorkflowRun, useWorkflowRunStream } from "../hooks/useWorkflowRuns";
+import { useWorkflowRun } from "../hooks/useWorkflowRuns";
 import { useCancelWorkflowRun } from "../hooks/useWorkflowMutations";
 import { useToast } from "../context/ToastContext";
-import StreamTerminal from "../components/StreamTerminal";
 import type { RunStatus, StepStatus } from "../types";
 
 const runStatusConfig: Record<
@@ -69,7 +68,6 @@ export default function WorkflowRunDetail() {
   usePageTitle("Workflow Run");
   const { runId } = useParams<{ runId: string }>();
   const { data: run, isLoading } = useWorkflowRun(runId);
-  const stream = useWorkflowRunStream(runId);
   const cancelRun = useCancelWorkflowRun();
   const { toast } = useToast();
 
@@ -222,15 +220,15 @@ export default function WorkflowRunDetail() {
                     >
                       {step.status}
                     </span>
-                    {step.session_id && (
+                    {step.task_id && (
                       <Link
-                        to={`/sessions/${step.session_id}`}
+                        to={`/sessions/${step.task_id}`}
                         className="ml-auto flex items-center gap-1 text-xs text-accent transition-colors hover:underline"
                       >
                         <span className="material-symbols-outlined text-sm">
                           open_in_new
                         </span>
-                        Session {step.session_id.slice(0, 8)}
+                        View Session
                       </Link>
                     )}
                     {step.error && (
@@ -248,23 +246,6 @@ export default function WorkflowRunDetail() {
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Stream */}
-      {(isActive || stream.events.length > 0) && (
-        <StreamTerminal events={stream.events} />
-      )}
-
-      {stream.error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-900/50 bg-red-900/10 px-4 py-2">
-          <p className="text-sm text-red-400">Stream error: {stream.error}</p>
-          <button
-            onClick={stream.reconnect}
-            className="text-xs text-red-300 underline"
-          >
-            Reconnect
-          </button>
         </div>
       )}
 

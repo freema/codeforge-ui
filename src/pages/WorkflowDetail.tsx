@@ -194,19 +194,22 @@ export default function WorkflowDetail() {
           )}
           <button
             onClick={() => setShowRun(!showRun)}
-            className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover"
+            className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold transition-all ${
+              showRun
+                ? "border border-edge bg-surface-alt text-fg-2"
+                : "bg-accent text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] hover:bg-accent-hover"
+            }`}
           >
             <span className="material-symbols-outlined text-lg">
-              play_arrow
+              {showRun ? "close" : "play_arrow"}
             </span>
-            Run Workflow
+            {showRun ? "Close" : "Run Workflow"}
           </button>
         </div>
       </div>
 
-      {/* Run form - smart version */}
-      {showRun && isSentryFixer && <SentryFixerRunForm />}
-      {showRun && !isSentryFixer && (
+      {/* Run form — only shown when toggled */}
+      {showRun && (isSentryFixer ? <SentryFixerRunForm /> : (
         <div className="rounded-xl border border-edge bg-surface/50 p-6 space-y-4">
           <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-fg-2">
             <span className="material-symbols-outlined text-accent text-base">
@@ -312,7 +315,7 @@ export default function WorkflowDetail() {
             Start Run
           </button>
         </div>
-      )}
+      ))}
 
       {/* Steps */}
       <div className="rounded-xl border border-edge bg-surface-alt overflow-hidden">

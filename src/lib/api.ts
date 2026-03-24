@@ -2,6 +2,7 @@ import type {
   Session,
   SessionType,
   CreateSessionRequest,
+  PRStatus,
   HealthResponse,
   ProviderKey,
   CreateKeyRequest,
@@ -13,7 +14,10 @@ import type {
   WorkflowRun,
   CreateWorkflowRequest,
   RunWorkflowRequest,
+  WorkflowConfig,
+  CreateWorkflowConfigRequest,
   Repository,
+  PullRequest,
   ToolDefinition,
   CLIEntry,
   SentryOrganization,
@@ -105,8 +109,15 @@ export function createApiClient(serverUrl: string, token: string) {
       id: string,
       req?: { title?: string; description?: string; target_branch?: string },
     ) => post<Session>(`/sessions/${id}/create-pr`, req),
+    pushToPR: (id: string) =>
+      post<{ pr_url: string; branch: string; message: string }>(
+        `/sessions/${id}/push`,
+      ),
     reviewSession: (id: string, req?: { cli?: string; model?: string }) =>
       post<{ id: string; status: string }>(`/sessions/${id}/review`, req),
+    postReviewComments: (id: string) =>
+      post<{ posted: boolean; message: string }>(`/sessions/${id}/post-review`),
+    getPRStatus: (id: string) => get<PRStatus>(`/sessions/${id}/pr-status`),
 
     // Session Types
     listSessionTypes: () =>
@@ -124,6 +135,11 @@ export function createApiClient(serverUrl: string, token: string) {
       get<{ branches: { name: string; default: boolean }[] }>(
         `/branches?provider_key=${encodeURIComponent(providerKey)}&repo=${encodeURIComponent(repo)}`,
       ).then((r) => r.branches),
+
+    listPullRequests: (providerKey: string, repo: string) =>
+      get<{ pull_requests: PullRequest[] }>(
+        `/pull-requests?provider_key=${encodeURIComponent(providerKey)}&repo=${encodeURIComponent(repo)}`,
+      ).then((r) => r.pull_requests),
 
     // Tools
     listToolsCatalog: () =>
@@ -179,6 +195,22 @@ export function createApiClient(serverUrl: string, token: string) {
     cancelAllWorkflowRuns: (workflowName?: string) =>
       post<{ cancelled: number; message: string }>(
         `/workflow-runs/cancel-all${workflowName ? `?workflow=${encodeURIComponent(workflowName)}` : ""}`,
+      ),
+
+    // Workflow Configs (saved configurations)
+    listWorkflowConfigs: () =>
+      get<{ configs: WorkflowConfig[] }>("/workflow-configs").then(
+        (r) => r.configs,
+      ),
+    getWorkflowConfig: (id: number) =>
+      get<WorkflowConfig>(`/workflow-configs/${id}`),
+    createWorkflowConfig: (req: CreateWorkflowConfigRequest) =>
+      post<{ id: number; name: string }>("/workflow-configs", req),
+    deleteWorkflowConfig: (id: number) =>
+      del<void>(`/workflow-configs/${id}`),
+    runWorkflowConfig: (id: number) =>
+      post<{ run_id: string; workflow_name: string; status: string }>(
+        `/workflow-configs/${id}/run`,
       ),
 
     // Sentry (proxied through BE)

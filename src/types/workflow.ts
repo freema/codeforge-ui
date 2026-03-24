@@ -41,7 +41,7 @@ export interface WorkflowRunStep {
   step_type: StepType;
   status: StepStatus;
   result?: string;
-  session_id?: string;
+  task_id?: string;
   error?: string;
   started_at?: string;
   finished_at?: string;
@@ -68,4 +68,20 @@ export interface CreateWorkflowRequest {
 
 export interface RunWorkflowRequest {
   params?: Record<string, string>;
+}
+
+export interface WorkflowConfig {
+  id: number;
+  name: string;
+  workflow: string;
+  params: Record<string, string>;
+  timeout_seconds?: number;
+  created_at: string;
+}
+
+export interface CreateWorkflowConfigRequest {
+  name: string;
+  workflow: string;
+  params: Record<string, string>;
+  timeout_seconds?: number;
 }

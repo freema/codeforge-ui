@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 import type { CreateSessionRequest } from "../types";
 
@@ -52,6 +52,17 @@ export function useCreatePR() {
   });
 }
 
+export function usePushToPR() {
+  const api = useApi();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.pushToPR(id),
+    onSuccess: (_data, id) =>
+      qc.invalidateQueries({ queryKey: ["session", id] }),
+  });
+}
+
 export function useReviewSession() {
   const api = useApi();
   const qc = useQueryClient();
@@ -68,5 +79,27 @@ export function useReviewSession() {
     }) => api.reviewSession(id, { cli, model }),
     onSuccess: (_data, { id }) =>
       qc.invalidateQueries({ queryKey: ["session", id] }),
+  });
+}
+
+export function usePostReviewComments() {
+  const api = useApi();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.postReviewComments(id),
+    onSuccess: (_data, id) =>
+      qc.invalidateQueries({ queryKey: ["session", id] }),
+  });
+}
+
+export function usePRStatus(sessionId: string | undefined, hasPR: boolean) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["pr-status", sessionId],
+    queryFn: () => api.getPRStatus(sessionId!),
+    enabled: !!sessionId && hasPR,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 }

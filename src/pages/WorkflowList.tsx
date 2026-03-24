@@ -1,16 +1,18 @@
 import { useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useSearchParams } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { useWorkflows } from "../hooks/useWorkflows";
 import { useWorkflowRuns } from "../hooks/useWorkflowRuns";
 import {
   useCancelWorkflowRun,
   useCancelAllWorkflowRuns,
 } from "../hooks/useWorkflowMutations";
 import { useToast } from "../context/ToastContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApi } from "../hooks/useApi";
 import type { WorkflowRun, RunStatus } from "../types";
 
-type Tab = "workflows" | "runs";
+type Tab = "configs" | "runs";
+const VALID_TABS = new Set<Tab>(["configs", "runs"]);
 
 const runStatusColors: Record<
   RunStatus,
@@ -39,12 +41,6 @@ const runStatusColors: Record<
   },
 };
 
-const stepTypeIcons: Record<string, string> = {
-  fetch: "cloud_download",
-  session: "smart_toy",
-  action: "rocket_launch",
-};
-
 const workflowIcons: Record<string, string> = {
   "sentry-fixer": "bug_report",
   "github-issue-fixer": "code",
@@ -56,37 +52,56 @@ export default function WorkflowList() {
   usePageTitle("Workflows");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const {
-    data: workflows = [],
-    isLoading: wfLoading,
-    refetch: refetchWf,
-  } = useWorkflows();
+  const api = useApi();
+  const qc = useQueryClient();
+
+  const { data: configs = [], isLoading: configsLoading } = useQuery({
+    queryKey: ["workflowConfigs"],
+    queryFn: () => api.listWorkflowConfigs(),
+  });
+
   const {
     data: runs = [],
     isLoading: runsLoading,
-    refetch: refetchRuns,
   } = useWorkflowRuns();
   const cancelRun = useCancelWorkflowRun();
   const cancelAll = useCancelAllWorkflowRuns();
-  const [tab, setTab] = useState<Tab>("workflows");
+
+  const deleteConfig = useMutation({
+    mutationFn: (id: number) => api.deleteWorkflowConfig(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workflowConfigs"] }),
+  });
+  const runConfig = useMutation({
+    mutationFn: (id: number) => api.runWorkflowConfig(id),
+    onSuccess: (data) => {
+      void navigate(`/workflows/runs/${data.run_id}`);
+    },
+  });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab") as Tab | null;
+  const tab: Tab = rawTab && VALID_TABS.has(rawTab) ? rawTab : "configs";
+
+  function setTab(t: Tab) {
+    setSearchParams(t === "configs" ? {} : { tab: t }, { replace: true });
+  }
   const [search, setSearch] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [expandedConfig, setExpandedConfig] = useState<number | null>(null);
 
-  const isLoading = tab === "workflows" ? wfLoading : runsLoading;
-  const refetch = tab === "workflows" ? refetchWf : refetchRuns;
+  const activeRuns = runs.filter(
+    (r) => r.status === "pending" || r.status === "running",
+  );
 
-  const filteredWorkflows = useMemo(() => {
-    const sorted = [...workflows].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-    if (!search) return sorted;
+  const filteredConfigs = useMemo(() => {
+    if (!search) return configs;
     const q = search.toLowerCase();
-    return sorted.filter(
-      (w) =>
-        w.name.toLowerCase().includes(q) ||
-        w.description.toLowerCase().includes(q),
+    return configs.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.workflow.toLowerCase().includes(q),
     );
-  }, [workflows, search]);
+  }, [configs, search]);
 
   const filteredRuns = useMemo(() => {
     const sorted = [...runs].sort(
@@ -103,10 +118,6 @@ export default function WorkflowList() {
     );
   }, [runs, search]);
 
-  const activeRuns = runs.filter(
-    (r) => r.status === "pending" || r.status === "running",
-  );
-
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
@@ -116,7 +127,7 @@ export default function WorkflowList() {
             Workflows
           </h1>
           <p className="mt-1 text-sm text-fg-3">
-            Automated multi-step pipelines
+            Saved workflow configurations
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -139,15 +150,11 @@ export default function WorkflowList() {
             </button>
           )}
           <button
-            onClick={() => void refetch()}
-            className="group flex h-10 items-center gap-2 rounded-lg border border-edge bg-surface-alt px-4 text-sm font-bold text-fg-2 transition-all hover:border-accent hover:text-accent"
+            onClick={() => void navigate("/workflows/new")}
+            className="flex h-10 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover"
           >
-            <span
-              className={`material-symbols-outlined text-xl transition-transform group-hover:rotate-180 ${isLoading ? "animate-spin" : ""}`}
-            >
-              refresh
-            </span>
-            Refresh
+            <span className="material-symbols-outlined text-lg">add</span>
+            Create Workflow
           </button>
         </div>
       </div>
@@ -155,11 +162,7 @@ export default function WorkflowList() {
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg border border-edge bg-surface p-1">
         {[
-          {
-            key: "workflows" as const,
-            label: "Workflows",
-            icon: "account_tree",
-          },
+          { key: "configs" as const, label: "My Workflows", icon: "account_tree" },
           {
             key: "runs" as const,
             label: "Runs",
@@ -198,7 +201,9 @@ export default function WorkflowList() {
         <input
           type="text"
           placeholder={
-            tab === "workflows" ? "> Search workflows..." : "> Search runs..."
+            tab === "configs"
+              ? "> Search workflows..."
+              : "> Search runs..."
           }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -207,9 +212,9 @@ export default function WorkflowList() {
       </div>
 
       {/* Content */}
-      {tab === "workflows" ? (
+      {tab === "configs" ? (
         <>
-          {!wfLoading && workflows.length === 0 ? (
+          {!configsLoading && configs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <span className="material-symbols-outlined mb-4 text-5xl text-slate-700">
                 account_tree
@@ -217,105 +222,152 @@ export default function WorkflowList() {
               <p className="mb-1 text-lg font-medium text-fg-3">
                 No workflows yet
               </p>
-              <p className="text-sm text-fg-4">
-                Workflows will appear here once created via the API.
+              <p className="mb-4 text-sm text-fg-4">
+                Create your first workflow by picking a template and configuring it.
               </p>
+              <button
+                onClick={() => void navigate("/workflows/new")}
+                className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-bold text-page shadow-[0_0_15px_rgba(0,255,64,0.3)] transition-all hover:bg-accent-hover"
+              >
+                <span className="material-symbols-outlined text-lg">add</span>
+                Create Workflow
+              </button>
             </div>
-          ) : filteredWorkflows.length === 0 ? (
+          ) : filteredConfigs.length === 0 ? (
             <p className="py-12 text-center text-sm text-fg-4">
               No workflows match your search.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-edge">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-edge bg-surface text-left">
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
-                      Workflow
-                    </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
-                      Steps
-                    </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4">
-                      Params
-                    </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-4 text-right">
-                      Type
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-edge">
-                  {filteredWorkflows.map((wf) => {
-                    const icon = workflowIcons[wf.name] || "account_tree";
-                    return (
-                      <tr
-                        key={wf.name}
-                        onClick={() =>
-                          void navigate(
-                            `/workflows/${encodeURIComponent(wf.name)}`,
-                          )
-                        }
-                        className="group cursor-pointer bg-surface-alt transition-colors hover:bg-accent/5"
-                      >
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-xl text-accent/50 group-hover:text-accent">
-                              {icon}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-fg group-hover:text-accent transition-colors">
-                                {wf.name}
-                              </div>
-                              {wf.description && (
-                                <p className="mt-0.5 truncate text-xs text-fg-4">
-                                  {wf.description}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-1">
-                            {wf.steps.map((step, i) => (
-                              <span
-                                key={i}
-                                className="flex items-center gap-0.5"
-                                title={`${step.name} (${step.type})`}
-                              >
-                                <span className="material-symbols-outlined text-sm text-fg-4">
-                                  {stepTypeIcons[step.type] || "extension"}
-                                </span>
-                                {i < wf.steps.length - 1 && (
-                                  <span className="material-symbols-outlined text-xs text-fg-4/40">
-                                    chevron_right
-                                  </span>
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="font-mono text-xs text-fg-4">
-                            {wf.parameters.filter((p) => p.required).length}{" "}
-                            required
+            <div className="flex flex-col gap-3">
+              {filteredConfigs.map((cfg) => {
+                const icon = workflowIcons[cfg.workflow] || "account_tree";
+                return (
+                  <div
+                    key={cfg.id}
+                    className="group rounded-xl border border-edge bg-surface-alt p-4 transition-colors hover:border-accent/30"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface border border-edge">
+                          <span className="material-symbols-outlined text-xl text-accent/60 group-hover:text-accent">
+                            {icon}
                           </span>
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          {wf.builtin ? (
-                            <span className="rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-                              BUILT-IN
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-fg">{cfg.name}</span>
+                            <span className="rounded-full border border-edge bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-fg-3">
+                              {cfg.workflow}
                             </span>
-                          ) : (
-                            <span className="rounded-full border border-edge px-2 py-0.5 text-[10px] font-bold text-fg-4">
-                              CUSTOM
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-4">
+                            {Object.entries(cfg.params)
+                              .filter(([, v]) => v)
+                              .slice(0, 3)
+                              .map(([k, v]) => (
+                                <span key={k} className="font-mono">
+                                  {k}={v.length > 20 ? v.slice(0, 20) + "..." : v}
+                                </span>
+                              ))}
+                            {Object.keys(cfg.params).length > 3 && (
+                              <span>+{Object.keys(cfg.params).length - 3} more</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => setExpandedConfig(expandedConfig === cfg.id ? null : cfg.id)}
+                          className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                            expandedConfig === cfg.id
+                              ? "border-accent/30 text-accent"
+                              : "border-edge text-fg-3 hover:border-accent/30 hover:text-accent"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {expandedConfig === cfg.id ? "expand_less" : "expand_more"}
+                          </span>
+                          Detail
+                        </button>
+                        <button
+                          onClick={() => {
+                            runConfig.mutate(cfg.id, {
+                              onError: (err) =>
+                                toast("error", `Run failed: ${err.message}`),
+                            });
+                          }}
+                          disabled={runConfig.isPending}
+                          className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-bold text-page transition-all hover:bg-accent-hover disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            play_arrow
+                          </span>
+                          Run
+                        </button>
+                        {confirmDelete === cfg.id ? (
+                          <span className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                deleteConfig.mutate(cfg.id, {
+                                  onSuccess: () => {
+                                    toast("success", "Workflow deleted");
+                                    setConfirmDelete(null);
+                                  },
+                                });
+                              }}
+                              className="rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs font-medium text-red-400"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="text-xs text-fg-3"
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDelete(cfg.id)}
+                            className="rounded-md border border-edge p-1.5 text-fg-4 transition-colors hover:border-red-900/50 hover:text-red-400"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              delete
                             </span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expanded detail */}
+                    {expandedConfig === cfg.id && (
+                      <div className="mt-3 border-t border-edge pt-3">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+                          {Object.entries(cfg.params)
+                            .filter(([, v]) => v)
+                            .map(([k, v]) => (
+                              <div key={k} className="flex items-baseline gap-2 text-xs">
+                                <span className="font-medium text-fg-3">{k}</span>
+                                <span className="font-mono text-fg truncate" title={v}>
+                                  {v}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                        <div className="mt-2 text-[10px] text-fg-4">
+                          Template: <span className="font-mono text-fg-3">{cfg.workflow}</span>
+                          {cfg.timeout_seconds ? (
+                            <> &middot; Timeout: <span className="font-mono text-fg-3">{Math.round(cfg.timeout_seconds / 60)}min</span></>
+                          ) : null}
+                          {cfg.created_at && (
+                            <> &middot; Created: {new Date(cfg.created_at).toLocaleDateString()}</>
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
@@ -419,12 +471,7 @@ function RunRow({
         </span>
       </td>
       <td className="px-4 py-3">
-        <Link
-          to={`/workflows/${encodeURIComponent(run.workflow_name)}`}
-          className="text-sm text-fg-3 hover:text-accent transition-colors"
-        >
-          {run.workflow_name}
-        </Link>
+        <span className="text-sm text-fg-3">{run.workflow_name}</span>
       </td>
       <td className="px-4 py-3">
         {run.error && (
@@ -439,19 +486,28 @@ function RunRow({
         </span>
       </td>
       <td className="px-4 py-3">
-        {isActive && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCancel();
-            }}
-            disabled={cancelPending}
-            className="flex items-center rounded border border-red-900/50 bg-red-900/20 p-1.5 text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
-            title="Cancel run"
+        <div className="flex items-center gap-2">
+          <Link
+            to={`/workflows/runs/${run.id}`}
+            className="flex items-center gap-1 rounded-lg border border-edge px-3 py-1.5 text-xs font-medium text-fg-3 transition-colors hover:border-accent/30 hover:text-accent"
           >
-            <span className="material-symbols-outlined text-sm">stop</span>
-          </button>
-        )}
+            <span className="material-symbols-outlined text-sm">visibility</span>
+            Detail
+          </Link>
+          {isActive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancel();
+              }}
+              disabled={cancelPending}
+              className="flex items-center rounded border border-red-900/50 bg-red-900/20 p-1.5 text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+              title="Cancel run"
+            >
+              <span className="material-symbols-outlined text-sm">stop</span>
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );

@@ -72,6 +72,10 @@ export interface SessionConfig {
   workspace_session_id?: string;
   mcp_servers?: MCPServerRef[];
   tools?: SessionToolRef[];
+  pr_number?: number;
+  output_mode?: string;
+  auto_review_after_fix?: boolean;
+  auto_post_review?: boolean;
 }
 
 export interface SessionToolRef {
@@ -118,6 +122,16 @@ export interface MCPServerRef {
   name: string;
 }
 
+export interface PullRequest {
+  number: number;
+  title: string;
+  state: string;
+  author: string;
+  source_branch: string;
+  target_branch: string;
+  updated_at: string;
+}
+
 export interface Repository {
   name: string;
   full_name: string;
@@ -147,12 +161,21 @@ export interface ToolConfigField {
   type: string;
   env_var?: string;
   sensitive?: boolean;
+  provider_key?: string;
 }
 
 export interface CLIEntry {
   name: string;
   binary_path: string;
   default_model: string;
+  models?: string[];
   available: boolean;
   is_default: boolean;
+}
+
+export interface PRStatus {
+  state: "open" | "merged" | "closed";
+  title: string;
+  merged: boolean;
+  merged_by?: string;
 }

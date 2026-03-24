@@ -7,7 +7,10 @@ import {
   useCancelSession,
   useInstructSession,
   useCreatePR,
+  usePushToPR,
   useReviewSession,
+  usePostReviewComments,
+  usePRStatus,
 } from "../hooks/useSessionMutations";
 import StatusBadge from "../components/StatusBadge";
 import MarkdownText from "../components/MarkdownText";
@@ -39,15 +42,14 @@ export default function SessionDetail() {
   const cancelSession = useCancelSession();
   const instructSession = useInstructSession();
   const createPR = useCreatePR();
+  const pushToPR = usePushToPR();
   const reviewSession = useReviewSession();
+  const postReviewComments = usePostReviewComments();
+  const { data: prStatus } = usePRStatus(id, !!session?.pr_url);
   const { toast } = useToast();
 
   const [instructPrompt, setInstructPrompt] = useState("");
-  const [showPR, setShowPR] = useState(false);
-  const [prTitle, setPrTitle] = useState("");
-  const [prDesc, setPrDesc] = useState("");
-  const [prBranch, setPrBranch] = useState("main");
-  const [prError, setPrError] = useState("");
+  const [pushed, setPushed] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll terminal to bottom on new events
@@ -76,15 +78,21 @@ export default function SessionDetail() {
     session.status === "cloning" ||
     session.status === "reviewing";
   const canInstruct =
-    session.status === "completed" || session.status === "awaiting_instruction";
-  const canCreatePR =
-    session.status === "completed" && !session.pr_url && !isPlan;
-  const canReview = session.status === "completed" && !isPlan;
+    session.status === "completed" || session.status === "awaiting_instruction" || session.status === "pr_created";
   const hasChanges =
     session.changes_summary &&
     (session.changes_summary.files_modified > 0 ||
       session.changes_summary.files_created > 0 ||
       session.changes_summary.files_deleted > 0);
+  const canCreatePR =
+    (session.status === "completed" || session.status === "pr_created") && !isPlan && hasChanges;
+  const isPrReview = session.session_type === "pr_review";
+  const isReview = session.session_type === "review";
+  const canReview = session.status === "completed" && !isPlan && !isPrReview && !isReview;
+  const canPostComments =
+    isPrReview &&
+    session.status === "completed" &&
+    !!session.review_result;
 
   const repoShort = session.repo_url
     .replace(/^https?:\/\//, "")
@@ -105,6 +113,7 @@ export default function SessionDetail() {
     try {
       await instructSession.mutateAsync({ id, prompt: instructPrompt });
       setInstructPrompt("");
+      setPushed(false);
       stream.reconnect();
     } catch (err) {
       toast(
@@ -116,20 +125,36 @@ export default function SessionDetail() {
 
   async function handleCreatePR() {
     if (!id) return;
-    setPrError("");
     try {
-      await createPR.mutateAsync({
-        id,
-        title: prTitle || undefined,
-        description: prDesc || undefined,
-        target_branch: prBranch || undefined,
-      });
-      setShowPR(false);
-      toast("success", "Pull request created!");
+      await createPR.mutateAsync({ id });
+      toast("success", "PR created");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to create PR";
-      setPrError(msg);
-      toast("error", msg);
+      toast("error", err instanceof Error ? err.message : "PR creation failed");
+    }
+  }
+
+  async function handlePushToPR() {
+    if (!id) return;
+    try {
+      await pushToPR.mutateAsync(id);
+      setPushed(true);
+      toast("success", "Changes pushed to PR");
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Push failed");
+    }
+  }
+
+  async function handlePostComments() {
+    if (!id) return;
+    toast("info", "Posting review comments...");
+    try {
+      await postReviewComments.mutateAsync(id);
+      toast("success", "Review comments posted!");
+    } catch (err) {
+      toast(
+        "error",
+        err instanceof Error ? err.message : "Failed to post comments",
+      );
     }
   }
 
@@ -330,53 +355,6 @@ export default function SessionDetail() {
 
       {/* Bottom bar */}
       <div className="border-t border-edge bg-surface px-4 py-3">
-        {/* PR form (inline, above input) */}
-        {showPR && (
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-edge bg-surface-alt p-2.5">
-            <input
-              type="text"
-              value={prTitle}
-              onChange={(e) => setPrTitle(e.target.value)}
-              placeholder="PR title (optional)"
-              className="min-w-0 flex-1 rounded border border-edge bg-surface px-2 py-1 text-xs text-fg placeholder-fg-4 focus:border-accent focus:outline-none font-mono"
-            />
-            <input
-              type="text"
-              value={prBranch}
-              onChange={(e) => setPrBranch(e.target.value)}
-              placeholder="Target branch"
-              className="w-28 rounded border border-edge bg-surface px-2 py-1 text-xs text-fg placeholder-fg-4 focus:border-accent focus:outline-none font-mono"
-            />
-            <textarea
-              value={prDesc}
-              onChange={(e) => setPrDesc(e.target.value)}
-              placeholder="Description (optional)"
-              rows={1}
-              className="min-w-0 flex-1 rounded border border-edge bg-surface px-2 py-1 text-xs text-fg placeholder-fg-4 focus:border-accent focus:outline-none font-mono resize-none"
-            />
-            <button
-              onClick={() => void handleCreatePR()}
-              disabled={createPR.isPending}
-              className="flex items-center gap-1 rounded bg-accent px-2.5 py-1 text-xs font-bold text-page disabled:opacity-50"
-            >
-              {createPR.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <span className="material-symbols-outlined text-sm">
-                  call_merge
-                </span>
-              )}
-              {createPR.isPending ? "Creating..." : "Create"}
-            </button>
-            {prError && (
-              <span className="flex w-full items-center gap-1 text-[10px] text-red-400">
-                <span className="material-symbols-outlined text-xs">error</span>
-                {prError}
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Input row */}
         {canInstruct && (
           <div className="relative mb-2">
@@ -415,22 +393,22 @@ export default function SessionDetail() {
               <button
                 onClick={() => void handleCancel()}
                 disabled={cancelSession.isPending}
-                className="flex items-center gap-1 text-xs text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-900/30 disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-sm">
-                  cancel
+                  stop_circle
                 </span>
-                Cancel
+                {cancelSession.isPending ? "Cancelling..." : "Cancel"}
               </button>
             )}
             {canReview && (
               <button
                 onClick={() => void handleReview()}
                 disabled={reviewSession.isPending}
-                className="flex items-center gap-1 text-xs text-fg-3 transition-colors hover:text-accent disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg border border-edge bg-surface px-3 py-1.5 text-xs font-medium text-fg-3 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
               >
                 {reviewSession.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <span className="material-symbols-outlined text-sm">
                     rate_review
@@ -439,27 +417,86 @@ export default function SessionDetail() {
                 {reviewSession.isPending ? "Reviewing..." : "Review"}
               </button>
             )}
-            {canCreatePR && !showPR && (
+            {canPostComments && (
               <button
-                onClick={() => setShowPR(true)}
-                className="flex items-center gap-1 text-xs text-fg-3 transition-colors hover:text-accent"
+                onClick={() => void handlePostComments()}
+                disabled={postReviewComments.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-sm">
-                  call_merge
-                </span>
-                Create PR
+                {postReviewComments.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined text-sm">
+                    comment
+                  </span>
+                )}
+                {postReviewComments.isPending
+                  ? "Posting..."
+                  : "Post Comments to MR"}
+              </button>
+            )}
+            {/* PR Actions */}
+            {canCreatePR && !session.pr_url && hasChanges && (
+              <button
+                onClick={() => void handleCreatePR()}
+                disabled={createPR.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+              >
+                {createPR.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined text-sm">call_merge</span>
+                )}
+                {createPR.isPending ? "Creating..." : "Create PR"}
+              </button>
+            )}
+            {session.pr_url && hasChanges && !pushed && (!prStatus || prStatus.state === "open") && (
+              <button
+                onClick={() => void handlePushToPR()}
+                disabled={pushToPR.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+              >
+                {pushToPR.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined text-sm">upload</span>
+                )}
+                {pushToPR.isPending ? "Pushing..." : "Push to PR"}
+              </button>
+            )}
+            {session.pr_url && hasChanges && prStatus && (prStatus.state === "merged" || prStatus.state === "closed") && (
+              <button
+                onClick={() => void handleCreatePR()}
+                disabled={createPR.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+              >
+                {createPR.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined text-sm">call_merge</span>
+                )}
+                {createPR.isPending ? "Creating..." : "Create New PR"}
               </button>
             )}
             {session.pr_url && (
               <Link
                 to={session.pr_url}
                 target="_blank"
-                className="flex items-center gap-1 text-xs text-teal-500 transition-colors hover:text-teal-400"
+                className="flex items-center gap-1.5 rounded-lg border border-edge bg-surface px-3 py-1.5 text-xs font-medium text-fg-3 transition-colors hover:border-accent/30 hover:text-accent"
               >
-                <span className="material-symbols-outlined text-sm">
-                  open_in_new
-                </span>
+                <span className="material-symbols-outlined text-sm">open_in_new</span>
                 View PR
+                {prStatus && (
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                    prStatus.state === "merged"
+                      ? "bg-purple-500/20 text-purple-400"
+                      : prStatus.state === "closed"
+                        ? "bg-red-500/20 text-red-400"
+                        : "bg-accent/20 text-accent"
+                  }`}>
+                    {prStatus.state}
+                  </span>
+                )}
               </Link>
             )}
           </div>

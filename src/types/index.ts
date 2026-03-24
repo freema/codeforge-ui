@@ -11,10 +11,12 @@ export type {
   ReviewResult,
   ReviewIssue,
   Repository,
+  PullRequest,
   ToolDefinition,
   ToolConfigField,
   SessionToolRef,
   CLIEntry,
+  PRStatus,
 } from "./session";
 export type { StreamEventType, StreamEvent } from "./stream";
 export type { HealthResponse } from "./health";
@@ -32,6 +34,8 @@ export type {
   WorkflowRun,
   CreateWorkflowRequest,
   RunWorkflowRequest,
+  WorkflowConfig,
+  CreateWorkflowConfigRequest,
 } from "./workflow";
 export type {
   SentryOrganization,

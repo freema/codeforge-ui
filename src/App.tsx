@@ -7,6 +7,7 @@ import SessionList from "./pages/SessionList";
 import NewSession from "./pages/NewSession";
 import SessionDetail from "./pages/SessionDetail";
 import WorkflowList from "./pages/WorkflowList";
+import WorkflowCreate from "./pages/WorkflowCreate";
 import WorkflowDetail from "./pages/WorkflowDetail";
 import WorkflowRunDetail from "./pages/WorkflowRunDetail";
 import Settings from "./pages/Settings";
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/sessions/new" element={<NewSession />} />
           <Route path="/sessions/:id" element={<SessionDetail />} />
           <Route path="/workflows" element={<WorkflowList />} />
+          <Route path="/workflows/new" element={<WorkflowCreate />} />
           <Route
             path="/workflows/runs/:runId"
             element={<WorkflowRunDetail />}

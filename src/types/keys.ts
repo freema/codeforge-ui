@@ -3,6 +3,7 @@ export interface ProviderKey {
   provider: string;
   scope?: string;
   base_url?: string;
+  source?: "db" | "env";
 }
 
 export interface CreateKeyRequest {

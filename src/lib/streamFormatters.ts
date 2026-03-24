@@ -97,6 +97,25 @@ export function formatStreamSystemEvent(
     return null; // hide config noise
   }
 
+  if (subtype === "api_retry") {
+    const attempt = raw?.attempt as number | undefined;
+    const maxRetries = raw?.max_retries as number | undefined;
+    const delaySec = raw?.retry_delay_ms
+      ? ((raw.retry_delay_ms as number) / 1000).toFixed(0)
+      : "?";
+    const attemptStr =
+      attempt != null && maxRetries != null
+        ? `${attempt}/${maxRetries}`
+        : attempt != null
+          ? `${attempt}`
+          : "?";
+    return `API retry (attempt ${attemptStr}, waiting ${delaySec}s)...`;
+  }
+
+  if (subtype === "compact_boundary") {
+    return "Context compacted (conversation history trimmed)";
+  }
+
   // For other subtypes, try to extract a readable message
   if (raw) {
     if (typeof raw.message === "string") return raw.message;
